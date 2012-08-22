@@ -11,24 +11,16 @@ import java.util.regex.Pattern;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
 
-import org.apache.log4j.Logger;
 import org.jivesoftware.smackx.pubsub.Item;
 import org.jivesoftware.smackx.pubsub.ItemPublishEvent;
 import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 import org.xml.sax.InputSource;
 
 public class ManifestEventListener implements ItemEventListener<Item> {
-	private final Logger logger;
 	private final ExecutorService exec;
-	private final String converters;
-	private final Boolean compression;
-	private Pattern sliceNodePat;
+		private Pattern sliceNodePat;
 	
-	ManifestEventListener(String converters, Boolean compression, Logger l) {
-		logger = l;
-		this.converters = converters;
-		this.compression = compression;
-		
+	ManifestEventListener() {		
 		// create a threadpool
 		exec = Executors.newCachedThreadPool();	
 		
@@ -48,10 +40,10 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 					itemXml = (String) it.next().toXML();
 				}
 				catch (Exception e){
-					logger.error("Exception for toXML: " + e);
+					Globals.error("Exception for toXML: " + e);
 				}
 
-				logger.info("Received publish event on " + item.getNodeId());
+				Globals.info("Received publish event on " + item.getNodeId());
 				InputSource is = new InputSource(new StringReader(itemXml));
 				XPath xp = XPathFactory.newInstance().newXPath();
 				String gzippedManifest = xp.evaluate("/item", is);
@@ -62,17 +54,17 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 				boolean found = matcher.find();
 				
 				if (!found) {
-					logger.error("Unable to determine the pattern of the published slice name " + item.getNodeId());
+					Globals.error("Unable to determine the pattern of the published slice name " + item.getNodeId());
 					return;
 				}
 				
 				String sliceUrn = matcher.group(1);
 
 				// spawn a thread from a pool
-				exec.execute(new TranslateManifestThread(gzippedManifest, sliceUrn, converters, compression, logger));
+				exec.execute(new TranslateManifestThread(gzippedManifest, sliceUrn));
 			}
 		} catch (Exception e) {
-			logger.error("Unable to parse item XML: " + e);
+			Globals.error("Unable to parse item XML: " + e);
 			e.printStackTrace();
 		}
 	}
