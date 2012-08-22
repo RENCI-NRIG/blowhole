@@ -11,7 +11,6 @@ import java.util.Set;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
 
-import org.apache.log4j.Logger;
 import org.jivesoftware.smackx.pubsub.Item;
 import org.jivesoftware.smackx.pubsub.ItemPublishEvent;
 import org.jivesoftware.smackx.pubsub.Subscription;
@@ -24,16 +23,12 @@ import org.xml.sax.InputSource;
  *
  */
 public class SliceListEventListener implements ItemEventListener<Item> {
-	private final Logger logger;
 	private final Map<String, Set<String>> sliceLists = new HashMap<String, Set<String>>();
-	private final XMPPPubSub xmpp;
 	private final Map<String, Subscription> subscriptions = new HashMap<String, Subscription>();
 	private final ManifestEventListener mev;
 	
-	SliceListEventListener(XMPPPubSub xmpp, String converters, Boolean compression, Logger l) {
-		logger = l;
-		this.xmpp = xmpp;
-		mev = new ManifestEventListener(converters, compression, l);
+	SliceListEventListener() {
+		mev = new ManifestEventListener();
 	}
 	
 	/**
@@ -41,7 +36,7 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 	 */
 	protected void finalize() {
 		for (String p: subscriptions.keySet()) {
-			xmpp.unsubscribeFromNode(p, subscriptions.get(p));
+			Globals.getInstance().getXMPP().unsubscribeFromNode(p, subscriptions.get(p));
 		}
 	}
 	
@@ -86,16 +81,16 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 					itemXml = (String) it.next().toXML();
 				}
 				catch (Exception e){
-					logger.error("Exception for toXML: " + e);
+					Globals.error("Exception for toXML: " + e);
 				}
 
-				logger.info("Received publish event on " + item.getNodeId());
+				Globals.info("Received publish event on " + item.getNodeId());
 				InputSource is = new InputSource(new StringReader(itemXml));
 				XPath xp = XPathFactory.newInstance().newXPath();
 				String listOfManifests = xp.evaluate("/item", is);
 				
 				if (listOfManifests == null) {
-					logger.warn("Null list of slices received, continuing");
+					Globals.warn("Null list of slices received, continuing");
 					continue;
 				}
 				
@@ -121,20 +116,20 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 
 						// unsubscribe from old
 						for (String s: goneElems) {
-							logger.info("Removing subscription from manifest " + s);
-							xmpp.unsubscribeFromNode(s, subscriptions.get(s));
+							Globals.info("Removing subscription from manifest " + s);
+							Globals.getInstance().getXMPP().unsubscribeFromNode(s, subscriptions.get(s));
 							subscriptions.remove(s);
 						}
 						// subscribe to new
 						for (String s: newElems) {
-							logger.info("Adding subscription to manifest [1]" + s);
-							subscriptions.put(s, xmpp.subscribeToNode(s, mev));
+							Globals.info("Adding subscription to manifest [1]" + s);
+							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
 						}
 					} else {
 						// subscribe to all
 						for (String s: newManifestSet) {
-							logger.info("Adding subscription to manifest [2] " + s);
-							subscriptions.put(s, xmpp.subscribeToNode(s, mev));
+							Globals.info("Adding subscription to manifest [2] " + s);
+							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
 						}
 					}
 					// (re)place the set in map
@@ -142,7 +137,7 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Unable to parse item XML: " + e);
+			Globals.error("Unable to parse item XML: " + e);
 			e.printStackTrace();
 		}
 	}

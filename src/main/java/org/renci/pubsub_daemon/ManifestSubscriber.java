@@ -31,7 +31,7 @@ import sun.misc.SignalHandler;
  *
  * @author ibaldin
  */
-public class SimpleSubscriber {
+public class ManifestSubscriber {
 	private static final String ORCA_SM_SLICE_LIST_SUFFIX = ".+sliceList";
 	private static final String ORCA_SM_PREFIX = "/orca/sm/";
 
@@ -51,11 +51,9 @@ public class SimpleSubscriber {
 	private static final String PUBSUB_KEYSTORE_PASS = PUBSUB_PROP_PREFIX + ".keystorepass";
 	// Note truststore password would be read from the GMOC.pubsub.password property when using certificates
 
-	static Logger logger;
 	static XPath xp;
 
 	private Properties prefProperties = null;
-	private final XMPPPubSub xmpp;
 	private SliceListEventListener sliceListener = null;
 	private Set<SubscriptionPair> subscriptions = null;
 
@@ -68,12 +66,14 @@ public class SimpleSubscriber {
 		}
 	}
 	
-	SimpleSubscriber() {
+	ManifestSubscriber() {
 		processPreferences();
 
 		// create logger
 		PropertyConfigurator.configure(prefProperties);
-		logger = Logger.getLogger(this.getClass());
+		Logger logger = Logger.getLogger(this.getClass());
+		
+		Globals.getInstance().setLogger(logger);
 		
 		String converters = prefProperties.getProperty(PUBSUB_CONVERTER_LIST);
 		if (converters == null) {
@@ -81,7 +81,9 @@ public class SimpleSubscriber {
 			System.exit(1);
 		}
 		
-		logger.info("Creating XMPP connection for new account creation");
+		Globals.getInstance().setConverters(converters);
+		
+		Globals.info("Creating XMPP connection for new account creation");
 		XMPPPubSub xmppAcctCreation = prepareXMPPForAcctCreation();
 		if (xmppAcctCreation == null) {
 			logger.error("Unable to create XMPP object for creating new accounts");
@@ -90,19 +92,21 @@ public class SimpleSubscriber {
 
 		xmppAcctCreation.createAccountAndDisconnect();
 
-		xmpp = prepareXMPP();
+		XMPPPubSub xmpp = prepareXMPP();
 
 		if (xmpp == null) {
 			logger.error("Unable to create xmpp connection, exiting");
 			System.exit(1);
 		}
 		
+		Globals.getInstance().setXMPP(xmpp);
+		
 		// get the list of nodes that list manifests
 		List<String> smNodes = getSMNodeList();
 		
 		subscriptions = new HashSet<SubscriptionPair>();
 		// and subscribe to them
-		sliceListener = new SliceListEventListener(xmpp, converters, true, logger);
+		sliceListener = new SliceListEventListener();
 		for (String smListNode: smNodes) {
 			logger.info("Subscribing to " + smListNode);
 			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, sliceListener));
@@ -112,7 +116,7 @@ public class SimpleSubscriber {
 	
 	protected void finalize() {
 		for(SubscriptionPair s: subscriptions) {
-			xmpp.unsubscribeFromNode(s.node, s.sub);
+			Globals.getInstance().getXMPP().unsubscribeFromNode(s.node, s.sub);
 		}
 		sliceListener.finalize();
 	}
@@ -151,7 +155,7 @@ public class SimpleSubscriber {
 
 		if ((xmppServerPort == null) ||
 				(xmppLogin == null)) {
-			logger.error("Missing GMOC.pubsub properties (server:port, login and password must be specified)");
+			Globals.error("Missing GMOC.pubsub properties (server:port, login and password must be specified)");
 			return null;
 		}
 
@@ -160,10 +164,11 @@ public class SimpleSubscriber {
 		String xmppUseCertificate = prefProperties.getProperty(PUBSUB_USECERTIFICATE_PROP);
 		if((xmppUseCertificate == null) || (xmppUseCertificate.equalsIgnoreCase("false"))) {
 			if (xmppPassword == null) {
-				logger.error("Missing property GMOC.pubsub.password");
+				Globals.error("Missing property GMOC.pubsub.password");
 				return null;
 			}
-			xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, xmppPassword, PUBSUB_SUBSCRIBER_RESOURCE, logger);
+			xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, xmppPassword, 
+					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger());
 		}
 		else if((xmppUseCertificate.equalsIgnoreCase("true"))){
 
@@ -174,23 +179,19 @@ public class SimpleSubscriber {
 			//String tspass = prefProperties.getProperty(PUBSUB_KEYSTORE_PASS);
 
 			if((kspath == null) || (kstype == null) || (kspass == null)){
-				logger.error("Missing keystore path, keystore type or password for certificate-based login");
-				logger.error("Specify GMOC.pubsub.keystorepath , GMOC.pubsub.keystoretype and GMOC.pubsub.keystorepass properties in measurement.properties");
+				Globals.error("Missing keystore path, keystore type or password for certificate-based login");
+				Globals.error("Specify GMOC.pubsub.keystorepath , GMOC.pubsub.keystoretype and GMOC.pubsub.keystorepass properties in measurement.properties");
 				return null;
 			}
 
 			xps = new XMPPPubSub(xmppServerPort.split(":")[0], port,
-					xmppLogin, xmppPassword, kspath, kstype, kspath, kspass, PUBSUB_SUBSCRIBER_RESOURCE, logger);
+					xmppLogin, xmppPassword, kspath, kstype, kspath, kspass, 
+					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger());
 		}
 		else {
-			logger.info("Certificate usage property has to be specified as: GMOC.pubsub.usecertificate=[true|false]");
+			Globals.info("Certificate usage property has to be specified as: GMOC.pubsub.usecertificate=[true|false]");
 			return null;
 		}
-
-		// **TODO** Remove this after testing
-		// xps.login();
-		// logger.info("Login session done");
-		//
 		return xps;
 
 	}
@@ -210,14 +211,14 @@ public class SimpleSubscriber {
 
 		if ((xmppServerPort == null) ||
 				(xmppLogin == null)) {
-			logger.error("Missing GMOC.pubsub properties (server:port and login must be specified)");
+			Globals.error("Missing GMOC.pubsub properties (server:port and login must be specified)");
 			return null;
 		}
 
 		int port = Integer.parseInt(xmppServerPort.split(":")[1]);
 
 		String defaultPassword = "defaultpass";
-		xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, defaultPassword, logger);
+		xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, defaultPassword, Globals.getInstance().getLogger());
 
 		return xps;
 	}
@@ -228,14 +229,20 @@ public class SimpleSubscriber {
 		
 		String smPropVal = prefProperties.getProperty(PUBSUB_SMS_PROP);
 		
+		if (smPropVal == null) {
+			// include everything
+			Globals.warn(PUBSUB_SMS_PROP + " not specified, will subscribe to ALL SMs found on this server.");
+			smPropVal = "";
+		} else if (smPropVal.length() == 0)
+			Globals.warn(PUBSUB_SMS_PROP + " is empty, will subscribe to ALL SMs found on this server.");
+		
 		Set<String> smsOfInterest = new HashSet<String>();
-		if (smPropVal != null) {
-			for(String s: smPropVal.split(",")) {
-				smsOfInterest.add(s.trim());
-			}
+
+		for(String s: smPropVal.split(",")) {
+			smsOfInterest.add(s.trim());
 		}
 		
-		List<String> pubNodes = xmpp.listAllNodes();
+		List<String> pubNodes = Globals.getInstance().getXMPP().listAllNodes();
 		
 		for (String n: pubNodes) {
 			//logger.info("Found node " + n);
@@ -251,10 +258,10 @@ public class SimpleSubscriber {
 	@SuppressWarnings("restriction")
 	private static class SubSignalHandler implements SignalHandler {
 		private SignalHandler oldHandler;
-		private SimpleSubscriber ss;
+		private ManifestSubscriber ss;
 		
 	    // Static method to install the signal handler
-	    public static SubSignalHandler install(String signalName, SimpleSubscriber ss) {
+	    public static SubSignalHandler install(String signalName, ManifestSubscriber ss) {
 	        Signal diagSignal = new Signal(signalName);
 	        SubSignalHandler diagHandler = new SubSignalHandler();
 	        diagHandler.oldHandler = Signal.handle(diagSignal, diagHandler);
@@ -280,7 +287,7 @@ public class SimpleSubscriber {
 	
 	public static void main(String[] args) {
 
-		SimpleSubscriber ss = new SimpleSubscriber();
+		ManifestSubscriber ss = new ManifestSubscriber();
 
 		//SubSignalHandler.install("TERM", ss);
 		
@@ -288,7 +295,7 @@ public class SimpleSubscriber {
 			try {
 				ss.wait();
 			} catch(InterruptedException ie) {
-				logger.info("Exiting");
+				Globals.info("Exiting");
 			}
 		}
 	}
