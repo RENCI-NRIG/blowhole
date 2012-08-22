@@ -1,0 +1,5 @@
+$ mvn clean assembly:assembly
+
+produces jar with dependencies. Create $HOME/.xmpp.properties according to xmpp.sample.properties. Then to run
+
+java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci.pubsub_daemon.ManifestSubscriber
