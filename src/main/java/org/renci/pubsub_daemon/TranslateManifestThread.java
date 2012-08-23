@@ -3,6 +3,8 @@ package org.renci.pubsub_daemon;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -67,6 +69,33 @@ public class TranslateManifestThread implements Runnable {
 		
 		if (Globals.getInstance().isDebugOn())
 			writeToFile(rspecMan, "/tmp/rspecman"+sliceUrn);
+		
+		// publish
+		URL pUrl;
+		try {
+			pUrl = new URL(Globals.getInstance().getPublishUrl());
+		} catch (MalformedURLException e) {
+			Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getPublishUrl());
+			return;
+		}
+		
+		// file or http(s)
+		if ("file".equals(pUrl.getProtocol())) {
+			// save to file
+			writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn);
+		} else {
+			// push
+			try {
+				HttpURLConnection httpCon = (HttpURLConnection) pUrl.openConnection();
+				httpCon.setDoOutput(true);
+				httpCon.setRequestMethod("PUT");
+				OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
+				out.write(rspecMan);
+				out.close();
+			} catch (IOException ioe) {
+				Globals.error("Unable to open connection to " + pUrl);
+			}
+		}
 	}
 
 	private void writeToFile(String man, String name) {
