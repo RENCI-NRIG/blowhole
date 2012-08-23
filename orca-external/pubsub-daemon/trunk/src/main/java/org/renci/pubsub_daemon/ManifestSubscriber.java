@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +43,7 @@ public class ManifestSubscriber {
 	private static final String PUBSUB_PASSWORD_PROP = PUBSUB_PROP_PREFIX + ".password";
 	private static final String PUBSUB_SMS_PROP = PUBSUB_PROP_PREFIX + ".monitored.sm.list";
 	private static final String PUBSUB_CONVERTER_LIST = PUBSUB_PROP_PREFIX + ".ndl.converter.list";
+	private static final String PUBSUB_PUBLISH_URL = PUBSUB_PROP_PREFIX + ".publish.url";
 
 	// For certificate based login
 	private static final String PUBSUB_USECERTIFICATE_PROP = PUBSUB_PROP_PREFIX + ".usecertificate";
@@ -88,6 +91,14 @@ public class ManifestSubscriber {
 		}
 		
 		Globals.getInstance().setConverters(converters);
+		
+		String publishUrl = prefProperties.getProperty(PUBSUB_PUBLISH_URL);
+		if (converters == null) {
+			logger.error("You must specify " + PUBSUB_CONVERTER_LIST + " - a comma-separated list of NDL converter URLs");
+			System.exit(1);
+		}
+		
+		Globals.getInstance().setPublishUrl(publishUrl);
 		
 		Globals.info("Creating XMPP connection for new account creation");
 		XMPPPubSub xmppAcctCreation = prepareXMPPForAcctCreation();
