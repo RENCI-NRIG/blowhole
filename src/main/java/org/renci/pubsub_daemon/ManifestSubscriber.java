@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +52,7 @@ public class ManifestSubscriber {
 
 	static XPath xp;
 
-	private Properties prefProperties = null;
+	protected Properties prefProperties = null;
 	private SliceListEventListener sliceListener = null;
 	private Set<SubscriptionPair> subscriptions = null;
 	private Semaphore sem = new Semaphore(1);
@@ -68,7 +66,11 @@ public class ManifestSubscriber {
 		}
 	}
 	
-	ManifestSubscriber() {
+	ManifestSubscriber(Object o) {
+		// do nothing (for inheritance)
+	}
+	
+	private ManifestSubscriber() {
 		processPreferences();
 
 		// create logger
@@ -144,7 +146,7 @@ public class ManifestSubscriber {
 	/**
 	 * Read and process preferences file
 	 */
-	private void processPreferences() {
+	protected void processPreferences() {
 		Properties p = System.getProperties();
 
 		String prefFilePath = "" + p.getProperty("user.home") + p.getProperty("file.separator") + PREF_FILE;
@@ -165,7 +167,7 @@ public class ManifestSubscriber {
 	 * prepare XMPP  object
 	 * @param args
 	 */
-	XMPPPubSub prepareXMPP() {
+	protected XMPPPubSub prepareXMPP() {
 
 		String xmppServerPort = prefProperties.getProperty(PUBSUB_SERVER_PROP);
 		String xmppLogin = prefProperties.getProperty(PUBSUB_LOGIN_PROP);
@@ -222,7 +224,7 @@ public class ManifestSubscriber {
 	 * @return
 	 */
 
-	private XMPPPubSub prepareXMPPForAcctCreation() {
+	protected XMPPPubSub prepareXMPPForAcctCreation() {
 
 		String xmppServerPort = prefProperties.getProperty(PUBSUB_SERVER_PROP);
 		String xmppLogin = prefProperties.getProperty(PUBSUB_LOGIN_PROP);
@@ -275,7 +277,7 @@ public class ManifestSubscriber {
 		return ret;
 	}
 	
-	private void addShutDownHandler() {
+	protected void addShutDownHandler() {
 		Runtime.getRuntime().addShutdownHook(new Thread (){
 			@Override
 			public void run() {
