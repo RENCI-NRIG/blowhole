@@ -7,3 +7,7 @@ java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci
 
 To stop use Ctrl-C (note that it may take a few seconds to cancel active subscriptions).
 
+
+To delete all pubsub nodes (must be run on behalf of the publisher, not the subscribers):
+
+java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci.pubsub_daemon.DeleteNodes
