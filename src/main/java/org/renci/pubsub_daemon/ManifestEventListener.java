@@ -30,6 +30,8 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 	
 	public void handlePublishedItems(ItemPublishEvent<Item> item) {
 		// get the manifest, de-base64. unzip, convert it and push it to GMOC
+		if (Globals.getInstance().isShuttingDown())
+			return;
 		try {
 			List<Item> items = item.getItems();
 			Iterator<Item> it = items.iterator();

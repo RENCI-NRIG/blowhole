@@ -35,8 +35,11 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 	 * d-tor
 	 */
 	protected void finalize() {
-		for (String p: subscriptions.keySet()) {
-			Globals.getInstance().getXMPP().unsubscribeFromNode(p, subscriptions.get(p));
+		synchronized(this) {
+			for (String p: subscriptions.keySet()) {
+				Globals.info("    " + p);
+				Globals.getInstance().getXMPP().unsubscribeFromNode(p, subscriptions.get(p));
+			}
 		}
 	}
 	
@@ -71,6 +74,8 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 	}
 	
 	public void handlePublishedItems(ItemPublishEvent<Item> item) {
+		if (Globals.getInstance().isShuttingDown())
+			return;
 		try {
 			List<Item> items = item.getItems();
 			Iterator<Item> it = items.iterator();

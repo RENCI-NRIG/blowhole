@@ -15,6 +15,7 @@ public class Globals {
 	private Boolean debugOn = false;
 	private XMPPPubSub xmpp = null;
 	private Logger logger = null;
+	private Boolean shuttingDown = false;
 	
 	/** 
 	 * Disallow
@@ -69,6 +70,14 @@ public class Globals {
 	
 	public Logger getLogger() {
 		return logger;
+	}
+	
+	public void setShuttingDown() {
+		shuttingDown = true;
+	}
+	
+	public Boolean isShuttingDown() {
+		return shuttingDown;
 	}
 	
 	/*

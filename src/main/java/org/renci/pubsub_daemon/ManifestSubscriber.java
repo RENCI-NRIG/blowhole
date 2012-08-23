@@ -16,15 +16,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 
 import javax.xml.xpath.XPath;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.jivesoftware.smackx.pubsub.Subscription;
-
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 
 /**
@@ -56,7 +54,8 @@ public class ManifestSubscriber {
 	private Properties prefProperties = null;
 	private SliceListEventListener sliceListener = null;
 	private Set<SubscriptionPair> subscriptions = null;
-
+	private Semaphore sem = new Semaphore(1);
+	
 	static class SubscriptionPair {
 		public Subscription sub;
 		public String node;
@@ -74,6 +73,13 @@ public class ManifestSubscriber {
 		Logger logger = Logger.getLogger(this.getClass());
 		
 		Globals.getInstance().setLogger(logger);
+		
+		try {
+			sem.acquire();
+		} catch (InterruptedException e) {
+			
+		}
+		addShutDownHandler();
 		
 		String converters = prefProperties.getProperty(PUBSUB_CONVERTER_LIST);
 		if (converters == null) {
@@ -111,10 +117,13 @@ public class ManifestSubscriber {
 			logger.info("Subscribing to " + smListNode);
 			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, sliceListener));
 			subscriptions.add(sp);
-		}
+		}		
+		sem.release();
 	}
 	
 	protected void finalize() {
+		
+		Globals.info("Shutting down subscriptions");
 		for(SubscriptionPair s: subscriptions) {
 			Globals.getInstance().getXMPP().unsubscribeFromNode(s.node, s.sub);
 		}
@@ -255,41 +264,34 @@ public class ManifestSubscriber {
 		return ret;
 	}
 	
-	@SuppressWarnings("restriction")
-	private static class SubSignalHandler implements SignalHandler {
-		private SignalHandler oldHandler;
-		private ManifestSubscriber ss;
-		
-	    // Static method to install the signal handler
-	    public static SubSignalHandler install(String signalName, ManifestSubscriber ss) {
-	        Signal diagSignal = new Signal(signalName);
-	        SubSignalHandler diagHandler = new SubSignalHandler();
-	        diagHandler.oldHandler = Signal.handle(diagSignal, diagHandler);
-	        diagHandler.ss = ss;
-	        return diagHandler;
-	    }
-		
-		public void handle(Signal sig) {
-			// call finalize explicitly
-			
-			this.ss.finalize();
-			
-			// unblock main thread
-			this.ss.notifyAll();
-			
-	         // Chain back to previous handler, if one exists
-            if (oldHandler != SIG_DFL && oldHandler != SIG_IGN ) {
-                oldHandler.handle(sig);
-            }
-            System.exit(0);
-		}
+	private void addShutDownHandler() {
+		Runtime.getRuntime().addShutdownHook(new Thread (){
+			@Override
+			public void run() {
+				synchronized(Globals.getInstance()) {
+					try {
+						sem.acquire();
+					} catch (InterruptedException e) {
+						
+					}
+					Globals.info("Shutting down subscriptions");
+					Globals.getInstance().setShuttingDown();
+					for(SubscriptionPair s: subscriptions) {
+						if ((s.node != null) && (s.sub != null)) {
+							Globals.info("  " + s.node);
+							Globals.getInstance().getXMPP().unsubscribeFromNode(s.node, s.sub);
+						}
+					}
+					sliceListener.finalize();
+					Globals.info("Exiting");
+				}
+			}
+		});
 	}
 	
 	public static void main(String[] args) {
 
 		ManifestSubscriber ss = new ManifestSubscriber();
-
-		//SubSignalHandler.install("TERM", ss);
 		
 		synchronized(ss) {
 			try {
