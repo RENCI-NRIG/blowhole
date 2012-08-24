@@ -16,6 +16,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
 import javax.xml.xpath.XPath;
@@ -56,6 +58,7 @@ public class ManifestSubscriber {
 	private SliceListEventListener sliceListener = null;
 	private Set<SubscriptionPair> subscriptions = null;
 	private Semaphore sem = new Semaphore(1);
+	private Timer tmr = null;
 	
 	static class SubscriptionPair {
 		public Subscription sub;
@@ -132,6 +135,14 @@ public class ManifestSubscriber {
 			subscriptions.add(sp);
 		}		
 		sem.release();
+		
+		// start a periodic reporting thread
+		tmr = new Timer();
+		tmr.schedule(new TimerTask() {
+			public void run() {
+				Globals.info(Globals.getInstance());
+			}
+		}, 5000, 5000);
 	}
 	
 	protected void finalize() {
@@ -159,7 +170,8 @@ public class ManifestSubscriber {
 			prefProperties.load(bin);
 
 		} catch (IOException e) {
-			;
+			System.err.println("Unable to load preferences file " + prefFilePath + ", exiting.");
+			System.exit(1);
 		}
 	}
 
@@ -288,6 +300,8 @@ public class ManifestSubscriber {
 						
 					}
 					Globals.info("Shutting down subscriptions");
+					tmr.cancel();
+					
 					Globals.getInstance().setShuttingDown();
 					for(SubscriptionPair s: subscriptions) {
 						if ((s.node != null) && (s.sub != null)) {

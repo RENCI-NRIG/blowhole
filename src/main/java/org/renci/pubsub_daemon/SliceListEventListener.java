@@ -37,8 +37,10 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 	protected void finalize() {
 		synchronized(this) {
 			for (String p: subscriptions.keySet()) {
-				Globals.info("    " + p);
-				Globals.getInstance().getXMPP().unsubscribeFromNode(p, subscriptions.get(p));
+				if (subscriptions.get(p) != null) {
+					Globals.info("    " + p);
+					Globals.getInstance().getXMPP().unsubscribeFromNode(p, subscriptions.get(p));
+				}
 			}
 		}
 	}
@@ -124,17 +126,26 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 							Globals.info("Removing subscription from manifest " + s);
 							Globals.getInstance().getXMPP().unsubscribeFromNode(s, subscriptions.get(s));
 							subscriptions.remove(s);
+							Globals.getInstance().decManifests();
 						}
 						// subscribe to new
 						for (String s: newElems) {
 							Globals.info("Adding subscription to manifest [1]" + s);
 							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
+							if (subscriptions.get(s) != null)
+								Globals.getInstance().incManifests();
+							else
+								subscriptions.remove(s);
 						}
 					} else {
 						// subscribe to all
 						for (String s: newManifestSet) {
 							Globals.info("Adding subscription to manifest [2] " + s);
 							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
+							if (subscriptions.get(s) != null)
+								Globals.getInstance().incManifests();
+							else
+								subscriptions.remove(s);
 						}
 					}
 					// (re)place the set in map

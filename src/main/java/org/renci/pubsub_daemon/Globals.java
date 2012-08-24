@@ -1,5 +1,7 @@
 package org.renci.pubsub_daemon;
 
+import java.util.Date;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -17,12 +19,15 @@ public class Globals {
 	private Logger logger = null;
 	private Boolean shuttingDown = false;
 	private String publishUrl = null;
+	private Date since = null;
+	private long manifestsSubscribed = 0;
+	private long eventsServed = 0;
 	
 	/** 
 	 * Disallow
 	 */
 	private Globals() {
-		
+		since = new Date();
 	}
 	
 	public static Globals getInstance() {
@@ -87,6 +92,22 @@ public class Globals {
 	
 	public String getPublishUrl() {
 		return publishUrl;
+	}
+	
+	public String toString() {
+		return "Up since " + since + " subscribed to " + manifestsSubscribed + ", served " + eventsServed + " manifest events";
+	}
+	
+	synchronized void incManifests() {
+		manifestsSubscribed ++;
+	}
+	
+	synchronized void decManifests() {
+		manifestsSubscribed --;
+	}
+	
+	synchronized void incEvents() {
+		eventsServed ++;
 	}
 	
 	/*
