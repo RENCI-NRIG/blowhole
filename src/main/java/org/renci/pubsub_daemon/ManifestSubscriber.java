@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -171,6 +172,17 @@ public class ManifestSubscriber {
 
 		} catch (IOException e) {
 			System.err.println("Unable to load preferences file " + prefFilePath + ", exiting.");
+			InputStream is = Class.class.getResourceAsStream("/org/renci/pubsub_daemon/xmpp.sample.properties");
+			if (is != null) {
+				try {
+					String s = new java.util.Scanner(is).useDelimiter("\\A").next();
+					System.err.println("Create $HOME/.xmpp.properties file as follows: \n\n" + s);
+				} catch (java.util.NoSuchElementException ee) {
+					;
+				}
+			} else {
+				System.err.println("Unable to load sample properties");
+			}
 			System.exit(1);
 		}
 	}
