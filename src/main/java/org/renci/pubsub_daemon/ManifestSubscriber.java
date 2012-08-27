@@ -300,7 +300,8 @@ public class ManifestSubscriber {
 						
 					}
 					Globals.info("Shutting down subscriptions");
-					tmr.cancel();
+					if (tmr != null)
+						tmr.cancel();
 					
 					Globals.getInstance().setShuttingDown();
 					for(SubscriptionPair s: subscriptions) {

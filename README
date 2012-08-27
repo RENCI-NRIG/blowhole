@@ -1,6 +1,16 @@
+$ mvn clean package appassembler:assemble
+
+produces an app that can be installed. The files are under target/appassembler - can be tar'ed/zipped etc. Creates both windows and unix-friendly start up shells
+
+sh target/appassembler/bin/blowhole
+
 $ mvn clean assembly:assembly
 
 produces jar with dependencies. Create $HOME/.xmpp.properties according to xmpp.sample.properties. Then to run
+
+java -jar ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar
+
+It can be run alternatively: 
 
 java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci.pubsub_daemon.ManifestSubscriber
 
