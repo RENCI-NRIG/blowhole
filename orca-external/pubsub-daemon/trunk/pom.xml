@@ -67,7 +67,20 @@
 							<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
 							<name>blowhole</name>
 						</program>
+						<program>
+							<mainClass>org.renci.pubsub_daemon.DeleteNodes</mainClass>
+							<name>deleteNodes</name>
+						</program>
 					</programs>
+					<daemons>
+						<daemon>
+							<id>blowholed</id>
+							<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
+							<platforms>
+								<platform>jsw</platform>
+							</platforms>
+						</daemon>
+					</daemons>
 				</configuration>
 			</plugin>
 		</plugins>
