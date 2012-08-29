@@ -248,6 +248,12 @@ public class ManifestSubscriber {
 				return null;
 			}
 
+			File ksp = new File(kspath);
+			if (!ksp.exists()) {
+				Globals.error("JKS file " + kspath + " cannot be found.");
+				return null;
+			}
+			
 			xps = new XMPPPubSub(xmppServerPort.split(":")[0], port,
 					xmppLogin, xmppPassword, kspath, kstype, kspath, kspass, 
 					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger());
