@@ -1,12 +1,22 @@
+The easy way to build (needs maven):
+
 $ mvn clean package appassembler:assemble
 
-produces an app that can be installed. The files are under target/appassembler - can be tar'ed/zipped etc. Creates both windows and unix-friendly start up shells
+produces an app that can be installed. The files are under target/appassembler/[bin/:repo/] - can be tar'ed/zipped etc. 
+Creates both windows and unix-friendly start up shell scripts.
 
-sh target/appassembler/bin/blowhole
+To run the app:
+
+$ sh target/appassembler/bin/blowhole
+
+When you run the first time it will complain that it can't find the config file and print out a sample file. 
+The file goes either into /etc/blowhole/xmpp.properties or $HOME/.xmpp.properties.
+
+Other ways to build/run:
 
 $ mvn clean assembly:assembly
 
-produces jar with dependencies. Create $HOME/.xmpp.properties according to xmpp.sample.properties. Then to run
+produces jar with dependencies. Then to run
 
 java -jar ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar
 
@@ -14,9 +24,7 @@ It can be run alternatively:
 
 java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci.pubsub_daemon.ManifestSubscriber
 
-
 To stop use Ctrl-C (note that it may take a few seconds to cancel active subscriptions).
-
 
 To delete all pubsub nodes (must be run on behalf of the publisher, not the subscribers):
 
