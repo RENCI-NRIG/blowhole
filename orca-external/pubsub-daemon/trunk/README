@@ -1,16 +1,25 @@
+The pubsub_daemon (aka 'blowhole') subscribes to a number of slice lists on an indicated
+XMPP server (using provided credentials) and listens for the events on the slice manifests
+and slice lists. When slice state is updated (its manifest is republished) a generated event
+tells the software to read the manifest, convert it to RSpec (from NDL) and then push it to
+a pre-configured URL (file or http). 
+
+With an http url, the software does HTTP PUT. With file URL it writes the manifest to a file
+in a file indicated by the URL (except the file name has '-' and slice urn appended to it).
+
 The easy way to build (needs maven):
 
 $ mvn clean package appassembler:assemble
 
-produces an app that can be installed. The files are under target/appassembler/[bin/:repo/] - can be tar'ed/zipped etc. 
-Creates both windows and unix-friendly start up shell scripts.
+produces an app that can be installed. The files are under target/appassembler/[bin/:repo/] - 
+can be tar'ed/zipped etc. Creates both windows and unix-friendly start up shell scripts.
 
 To run the app:
 
 $ sh target/appassembler/bin/blowhole
 
-When you run the first time it will complain that it can't find the config file and print out a sample file. 
-The file goes either into /etc/blowhole/xmpp.properties or $HOME/.xmpp.properties.
+When you run the first time it will complain that it can't find the config file and print out 
+a sample file. The file goes either into /etc/blowhole/xmpp.properties or $HOME/.xmpp.properties.
 
 Other ways to build/run:
 
