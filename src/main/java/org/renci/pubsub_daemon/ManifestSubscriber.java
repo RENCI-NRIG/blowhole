@@ -38,6 +38,7 @@ public class ManifestSubscriber {
 
 	private static final String PUBSUB_SUBSCRIBER_RESOURCE = "GMOC-Subscriber";
 	private static final String PREF_FILE = ".xmpp.properties";
+	private static final String GLOBAL_PREF_FILE = "/etc/blowhole/xmpp.properties";
 	private static final String PUBSUB_PROP_PREFIX = "GMOC.pubsub";
 	private static final String PUBSUB_SERVER_PROP = PUBSUB_PROP_PREFIX + ".server";
 	private static final String PUBSUB_LOGIN_PROP = PUBSUB_PROP_PREFIX + ".login";
@@ -155,23 +156,40 @@ public class ManifestSubscriber {
 		sliceListener.finalize();
 	}
 
+	private Properties loadProperties(String fileName) throws IOException {
+		File prefs = new File(fileName);
+		FileInputStream is = new FileInputStream(prefs);
+		BufferedReader bin = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+
+		Properties p = new Properties();
+		p.load(bin);
+		bin.close();
+		
+		return p;
+	}
+	
 	/**
 	 * Read and process preferences file
 	 */
 	protected void processPreferences() {
 		Properties p = System.getProperties();
 
-		String prefFilePath = "" + p.getProperty("user.home") + p.getProperty("file.separator") + PREF_FILE;
+		// properties can be under /etc/blowhole/xmpp.properties or under $HOME/.xmpp.properties
+		// in that order of preference
+		String prefFilePath = GLOBAL_PREF_FILE;
+		
 		try {
-			File prefs = new File(prefFilePath);
-			FileInputStream is = new FileInputStream(prefs);
-			BufferedReader bin = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-
-			prefProperties = new Properties();
-			prefProperties.load(bin);
-
+			prefProperties = loadProperties(prefFilePath);
+			return;
+		} catch (IOException ioe) {
+			System.err.println("Unable to load global config file " + prefFilePath + ", trying local file");
+		}
+		
+		prefFilePath = "" + p.getProperty("user.home") + p.getProperty("file.separator") + PREF_FILE;
+		try {
+			prefProperties = loadProperties(prefFilePath);
 		} catch (IOException e) {
-			System.err.println("Unable to load preferences file " + prefFilePath + ", exiting.");
+			System.err.println("Unable to load local config file " + prefFilePath + ", exiting.");
 			InputStream is = Class.class.getResourceAsStream("/org/renci/pubsub_daemon/xmpp.sample.properties");
 			if (is != null) {
 				try {
