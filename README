@@ -35,6 +35,17 @@ java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci
 
 To stop use Ctrl-C (note that it may take a few seconds to cancel active subscriptions).
 
-To delete all pubsub nodes (must be run on behalf of the publisher, not the subscribers):
+To delete all pubsub nodes (must be run on behalf of the publisher, not the subscribers), if you built it
+using 'mvn clean package appassembler:assemble' above, then simply
 
-java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci.pubsub_daemon.DeleteNodes
+$ sh target/appassembler/bin/deleteNodes
+
+---- FOR PACKAGERS -----
+
+$ mvn clean package appassembler:generate-daemons
+
+will create a deployable JSW-based daemon under
+
+./target/generated-resources/appassembler/jsw/blowholed
+
+It should be suitable for packaging in RPM. Right now only linux (32- and 64-bit linux distros).
