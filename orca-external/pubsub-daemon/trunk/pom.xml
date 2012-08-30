@@ -71,6 +71,10 @@
 							<mainClass>org.renci.pubsub_daemon.DeleteNodes</mainClass>
 							<name>deleteNodes</name>
 						</program>
+						<program>
+							<mainClass>org.renci.pubsub_daemon.ListNodes</mainClass>
+							<name>listNodes</name>
+						</program>
 					</programs>
 					<daemons>
 						<daemon>

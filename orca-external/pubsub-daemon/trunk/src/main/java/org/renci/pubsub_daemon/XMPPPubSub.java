@@ -353,7 +353,7 @@ public class XMPPPubSub implements CallbackHandler{
 			Iterator<DiscoverItems.Item> iItems = dItems.getItems();
 			while(iItems.hasNext()) {
 				DiscoverItems.Item it = iItems.next();
-				logger.info("Deleting node " + it.getNode());
+				logger.debug("Deleting node " + it.getNode());
 				try {
 					manager.deleteNode(it.getNode());
 				} catch (XMPPException e) {
