@@ -9,7 +9,7 @@ in a file indicated by the URL (except the file name has '-' and slice urn appen
 
 The easy way to build (needs maven):
 
-$ mvn clean package appassembler:assemble
+$ mvn clean package
 
 produces an app that can be installed. The files are under target/appassembler/[bin/:repo/] - 
 can be tar'ed/zipped etc. Creates both windows and unix-friendly start up shell scripts.
@@ -37,7 +37,7 @@ To stop use Ctrl-C (note that it may take a few seconds to cancel active subscri
 
 ---- Listing nodes in pubsub space 
 
-To list all nodes, if you built it using 'mvn clean package appassembler:assemble', then simply
+To list all nodes, if you built it using 'mvn clean package', then simply
 
 $ sh target/appassembler/bin/listNodes
 
@@ -49,7 +49,7 @@ $ sh target/appassembler/bin/deleteNodes
 
 ---- FOR PACKAGERS -----
 
-$ mvn clean package appassembler:generate-daemons
+$ mvn clean package
 
 will create a deployable JSW-based daemon under
 
