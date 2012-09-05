@@ -57,31 +57,41 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>appassembler-maven-plugin</artifactId>
 				<version>1.2.2</version>
-				<configuration>
-					<programs>
-						<program>
-							<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
-							<name>blowhole</name>
-						</program>
-						<program>
-							<mainClass>org.renci.pubsub_daemon.DeleteNodes</mainClass>
-							<name>deleteNodes</name>
-						</program>
-						<program>
-							<mainClass>org.renci.pubsub_daemon.ListNodes</mainClass>
-							<name>listNodes</name>
-						</program>
-					</programs>
-					<daemons>
-						<daemon>
-							<id>blowholed</id>
-							<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
-							<platforms>
-								<platform>jsw</platform>
-							</platforms>
-						</daemon>
-					</daemons>
-				</configuration>
+				<executions>
+					<execution>
+						<id>package-execs-and-daemon</id>
+						<phase>package</phase>
+						<goals>
+							<goal>assemble</goal>
+							<goal>generate-daemons</goal>
+						</goals>
+						<configuration>
+							<programs>
+								<program>
+									<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
+									<name>blowhole</name>
+								</program>
+								<program>
+									<mainClass>org.renci.pubsub_daemon.DeleteNodes</mainClass>
+									<name>deleteNodes</name>
+								</program>
+								<program>
+									<mainClass>org.renci.pubsub_daemon.ListNodes</mainClass>
+									<name>listNodes</name>
+								</program>
+							</programs>
+							<daemons>
+								<daemon>
+									<id>blowholed</id>
+									<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
+									<platforms>
+										<platform>jsw</platform>
+									</platforms>
+								</daemon>
+							</daemons>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
