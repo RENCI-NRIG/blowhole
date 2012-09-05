@@ -84,6 +84,15 @@
 								<daemon>
 									<id>blowholed</id>
 									<mainClass>org.renci.pubsub_daemon.ManifestSubscriber</mainClass>
+									<generatorConfigurations>
+										<generatorConfiguration>
+										<generator>jsw</generator>
+										<includes>
+											<include>macosx-x86-universal-32</include>
+											<include>linux-x86-64</include>
+										</includes>
+										</generatorConfiguration>
+									</generatorConfigurations>
 									<platforms>
 										<platform>jsw</platform>
 									</platforms>
