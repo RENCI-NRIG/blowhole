@@ -64,7 +64,7 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 				String sliceUrn = matcher.group(1);
 
 				// spawn a thread from a pool
-				exec.execute(new TranslateManifestThread(gzippedManifest, sliceUrn));
+				exec.execute(new ManifestWorkerThread(gzippedManifest, sliceUrn));
 			}
 		} catch (Exception e) {
 			Globals.error("Unable to parse item XML: " + e);

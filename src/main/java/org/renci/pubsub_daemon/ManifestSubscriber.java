@@ -47,6 +47,10 @@ public class ManifestSubscriber {
 	private static final String PUBSUB_CONVERTER_LIST = PUBSUB_PROP_PREFIX + ".ndl.converter.list";
 	private static final String PUBSUB_PUBLISH_URL = PUBSUB_PROP_PREFIX + ".publish.url";
 
+	private static final String DB_URL = "DB.url";
+	private static final String DB_USER = "DB.user";
+	private static final String DB_PASS = "DB.password";
+	
 	// For certificate based login
 	private static final String PUBSUB_USECERTIFICATE_PROP = PUBSUB_PROP_PREFIX + ".usecertificate";
 	private static final String PUBSUB_KEYSTOREPATH_PROP = PUBSUB_PROP_PREFIX + ".keystorepath";
@@ -114,6 +118,9 @@ public class ManifestSubscriber {
 			System.exit(1);
 		}
 
+		Globals.getInstance().setDbParams(prefProperties.getProperty(DB_URL), 
+				prefProperties.getProperty(DB_USER), prefProperties.getProperty(DB_PASS));
+		
 		xmppAcctCreation.createAccountAndDisconnect();
 
 		XMPPPubSub xmpp = prepareXMPP();
