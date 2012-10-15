@@ -7,6 +7,10 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,15 +26,18 @@ import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
  * uncompresses it, decodes via remote XMLRPC-NDL converter
  * function and publishes it to a desired URL.
  * 
+ * It also puts manifests into the database
+ * 
  * @author ibaldin
  *
  */
-public class TranslateManifestThread implements Runnable {
+public class ManifestWorkerThread implements Runnable {
+	private static final String MANIFEST_TYPE_GZIPPED_BASE_64_ENCODED_NDL = "NDL GZipped/Base-64 encoded";
 	private static final String MANIFEST_TO_RSPEC = "ndlConverter.manifestToRSpec3";
 	private final String man;
 	private final String sliceUrn;
 
-	TranslateManifestThread(String manifest, String sliceUrn) {
+	ManifestWorkerThread(String manifest, String sliceUrn) {
 		man = manifest;
 		this.sliceUrn = sliceUrn;
 	}
@@ -53,6 +60,56 @@ public class TranslateManifestThread implements Runnable {
 
 		if (Globals.getInstance().isDebugOn())
 			writeToFile(ndlMan, "/tmp/ndlman"+sliceUrn);
+
+		Connection dbc = null;
+		try {
+			if (Globals.getInstance().isDbValid()) {
+				Globals.debug("Saving to the database " + Globals.getInstance().getDbUrl());
+				// parse the manifest
+				NDLManifestParser parser = new NDLManifestParser(sliceUrn, ndlMan);
+				parser.parseAll();
+				Globals.info("Slice meta information: " + parser.getCreatorUrn() + " " + parser.getSliceUuid() + " " + parser.getSliceUrn() + " " + parser.getSliceState());
+				// insert into db or update db
+				dbc = Globals.getInstance().getDbConnection();
+				PreparedStatement pst = dbc.prepareStatement("SELECT slice_guid FROM `xoslices` WHERE slice_guid=?");
+				pst.setString(1, parser.getSliceUuid());
+				ResultSet rs = pst.executeQuery();
+				if(rs.next()) {
+					// update the row
+					Globals.debug("Updating row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
+					pst.close();
+					pst = dbc.prepareStatement("UPDATE `xoslices` SET slice_manifest=? WHERE slice_guid=?");
+					pst.setString(1, man);
+					pst.setString(2, parser.getSliceUuid());
+					pst.execute();
+				} else {
+					// insert new row
+					Globals.debug("Inserting new row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
+					pst.close();
+					pst = dbc.prepareStatement("INSERT into `xoslices` ( `slice_name` , `slice_guid` , `slice_owner`, `slice_manifest`, " + 
+					"`slice_manifest_type`) values (?, ?, ?, ?, ?)");
+					pst.setString(1, parser.getSliceUrn());
+					pst.setString(2, parser.getSliceUuid());
+					pst.setString(3, parser.getCreatorUrn());
+					pst.setString(4, man);
+					pst.setString(5, MANIFEST_TYPE_GZIPPED_BASE_64_ENCODED_NDL);
+					pst.execute();
+				}
+				rs.close();
+				pst.close();
+			}
+		} catch (SQLException e) {
+			Globals.error("Unable to insert into the database: " + e);
+		} catch (Exception e) {
+			Globals.error("Unable to parse the manifest: " + e);
+		} finally {
+			if (dbc != null)
+				try {
+					dbc.close();
+				} catch (SQLException e) {
+					Globals.error("Error closing connection: " + e);
+				}
+		}
 		
 		Globals.debug("Running through NDL converter");
 		

@@ -1,8 +1,14 @@
 package org.renci.pubsub_daemon;
 
+import java.beans.PropertyVetoException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.DataSources;
 
 /**
  * global settings singleton
@@ -22,6 +28,12 @@ public class Globals {
 	private Date since = null;
 	private long manifestsSubscribed = 0;
 	private long eventsServed = 0;
+	
+	private String dbUrl = null;
+	private String dbUser = null;
+	private String dbPass = null;
+	private boolean dbValid = false;
+	private ComboPooledDataSource cpds = null;
 	
 	/** 
 	 * Disallow
@@ -108,6 +120,69 @@ public class Globals {
 	
 	synchronized void incEvents() {
 		eventsServed ++;
+	}
+	
+	public void setDbParams(String url, String user, String pass) {
+		dbUrl = url;
+		dbUser = user;
+		dbPass = pass;
+		
+		// if all non-null, create a pooled connection source to the db
+		if ((url == null) || (user == null) || (pass == null)) {
+			dbValid = false;
+			if (cpds != null) {
+				try {
+					DataSources.destroy(cpds);
+				} catch (SQLException se) {
+					error("SQL Error (non fatal): " + se);
+				}
+				cpds = null;
+			}
+			info("Insufficient database parameters, not creating a connection");
+			return;
+		}
+		
+		cpds = new ComboPooledDataSource();
+		try {
+			cpds.setDriverClass("com.mysql.jdbc.Driver");
+		} catch (PropertyVetoException e) {
+			error("Unable to create JDBC MySQL connection (non-fatal): " + e);
+			try {
+				DataSources.destroy(cpds);
+			} catch (SQLException e1) {
+			}
+			cpds = null;
+			dbValid = false;
+			return;
+		}
+		cpds.setJdbcUrl(url);
+		cpds.setUser(user);
+		cpds.setPassword(pass);
+		
+		dbValid = true;
+	}
+	
+	// get a new db connection from pool
+	public Connection getDbConnection() throws SQLException {
+		if (dbValid)
+			return cpds.getConnection();
+		throw new SQLException("Invalid database parameters");
+	}
+	
+	public boolean isDbValid() {
+		return dbValid;
+	}
+	
+	public String getDbUrl() {
+		return dbUrl;
+	}
+	
+	public String getDbUser() {
+		return dbUser;
+	}
+	
+	public String getDbPass() {
+		return dbPass;
 	}
 	
 	/*
