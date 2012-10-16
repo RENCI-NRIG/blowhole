@@ -42,10 +42,16 @@ To list all nodes, if you built it using 'mvn clean package', then simply
 $ sh target/appassembler/bin/listNodes
 
 ---- Deleting nodes in pubsub space 
+
 To delete all pubsub nodes (must be run on behalf of the publisher, not the subscribers), if you built it
 using 'mvn clean package appassembler:assemble' above, then simply
 
 $ sh target/appassembler/bin/deleteNodes
+
+---- Database 
+
+Blowhole can save all slices into a MySQL database. The schema is xoschema.sql. You need to provide three properties
+DB.url, DB.user and DB.password for blowhole to start saving slices into the db.
 
 ---- FOR PACKAGERS -----
 
