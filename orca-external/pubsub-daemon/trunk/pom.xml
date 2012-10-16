@@ -8,6 +8,11 @@
 	<description>Listens to Orca Manifests and pushes them out</description>
 	<repositories>
 		<repository>
+			<id>geni-orca-libs</id>
+			<name>Orca Project Maven Repository</name>
+			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-orca-libs</url>
+		</repository>
+		<repository>
 			<id>geni-imf-libs</id>
 			<name>RENCI Nexus IMF</name>
 			<url>https://ci-dev.renci.org/nexus/content/repositories/geni-imf-libs</url>
