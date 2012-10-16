@@ -25,7 +25,7 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 		exec = Executors.newCachedThreadPool();	
 		
 		// thread-safe
-		sliceNodePat = Pattern.compile("^/orca/sm/.+---.+/(.+)---(.+)/manifest$");
+		sliceNodePat = Pattern.compile("^/orca/sm/(.+)---(.+)/(.+)---(.+)/manifest$");
 	}
 	
 	public void handlePublishedItems(ItemPublishEvent<Item> item) {
@@ -61,10 +61,12 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 					return;
 				}
 				
-				String sliceUrn = matcher.group(1);
+				String sliceUrn = matcher.group(3);
+				String sliceSmName = matcher.group(1);
+				String sliceSmGuid = matcher.group(2);
 
 				// spawn a thread from a pool
-				exec.execute(new ManifestWorkerThread(gzippedManifest, sliceUrn));
+				exec.execute(new ManifestWorkerThread(gzippedManifest, sliceUrn, sliceSmName, sliceSmGuid));
 			}
 		} catch (Exception e) {
 			Globals.error("Unable to parse item XML: " + e);
