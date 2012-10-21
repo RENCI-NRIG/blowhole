@@ -70,25 +70,25 @@ public class ManifestWorkerThread implements Runnable {
 				if(rs.next()) {
 					// update the row
 					Globals.debug("Updating row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
-					pst.close();
-					pst = dbc.prepareStatement("UPDATE `xoslices` SET slice_manifest=? WHERE slice_guid=? AND slice_sm=?");
-					pst.setString(1, man);
-					pst.setString(2, parser.getSliceUuid());
-					pst.setString(3, sliceSmName);
-					pst.execute();
+					PreparedStatement pst1 = dbc.prepareStatement("UPDATE `xoslices` SET slice_manifest=? WHERE slice_guid=? AND slice_sm=?");
+					pst1.setString(1, man);
+					pst1.setString(2, parser.getSliceUuid());
+					pst1.setString(3, sliceSmName);
+					pst1.execute();
+					pst1.close();
 				} else {
 					// insert new row
 					Globals.debug("Inserting new row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
-					pst.close();
-					pst = dbc.prepareStatement("INSERT into `xoslices` ( `slice_name` , `slice_guid` , `slice_owner`, `slice_manifest`, " + 
+					PreparedStatement pst1 = dbc.prepareStatement("INSERT into `xoslices` ( `slice_name` , `slice_guid` , `slice_owner`, `slice_manifest`, " + 
 					"`slice_manifest_type`, `slice_sm`) values (?, ?, ?, ?, ?, ?)");
-					pst.setString(1, parser.getSliceUrn());
-					pst.setString(2, parser.getSliceUuid());
-					pst.setString(3, parser.getCreatorUrn());
-					pst.setString(4, man);
-					pst.setString(5, MANIFEST_TYPE_GZIPPED_BASE_64_ENCODED_NDL);
-					pst.setString(6, sliceSmName);
-					pst.execute();
+					pst1.setString(1, parser.getSliceUrn());
+					pst1.setString(2, parser.getSliceUuid());
+					pst1.setString(3, parser.getCreatorUrn());
+					pst1.setString(4, man);
+					pst1.setString(5, MANIFEST_TYPE_GZIPPED_BASE_64_ENCODED_NDL);
+					pst1.setString(6, sliceSmName);
+					pst1.execute();
+					pst1.close();
 				}
 				rs.close();
 				pst.close();

@@ -27,8 +27,9 @@ CREATE TABLE `xoslices` (
   `slice_owner` varchar(255) NOT NULL,
   `slice_manifest` text,
   `slice_manifest_type` varchar(255) DEFAULT NULL,
-  `slice_sm` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`slice_guid`)
+  `slice_sm` varchar(255) NOT NULL DEFAULT '',
+  PRIMARY KEY (`slice_guid`,`slice_sm`),
+  UNIQUE KEY `slice_guid` (`slice_guid`,`slice_sm`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -40,4 +41,4 @@ CREATE TABLE `xoslices` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2012-10-16 14:06:13
+-- Dump completed on 2012-10-16 19:16:59
