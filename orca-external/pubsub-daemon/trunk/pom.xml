@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.renci</groupId>
 	<artifactId>pubsub-daemon</artifactId>
-	<version>0.1</version>
+	<version>0.2-SNAPSHOT</version>
 	<name>XMPP PubSub Daemon</name>
 	<description>Listens to Orca Manifests and pushes them out</description>
 	<repositories>
@@ -26,8 +26,8 @@
 	</distributionManagement>
 
 	<scm>
-		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/tags/pubsub-daemon-0.1</connection>
-		<url>https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/tags/pubsub-daemon-0.1</url>
+		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/trunk</connection>
+		<url>https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/</url>
 	</scm>
 	<organization>
 		<name>RENCI</name>
