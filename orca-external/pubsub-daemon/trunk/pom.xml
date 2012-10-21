@@ -1,9 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.renci</groupId>
 	<artifactId>pubsub-daemon</artifactId>
-	<version>0.1-SNAPSHOT</version>
+	<version>0.1</version>
 	<name>XMPP PubSub Daemon</name>
 	<description>Listens to Orca Manifests and pushes them out</description>
 	<repositories>
@@ -27,8 +26,8 @@
 	</distributionManagement>
 
 	<scm>
-		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/trunk</connection>
-		<url>https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/</url>
+		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/tags/pubsub-daemon-0.1</connection>
+		<url>https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/tags/pubsub-daemon-0.1</url>
 	</scm>
 	<organization>
 		<name>RENCI</name>
