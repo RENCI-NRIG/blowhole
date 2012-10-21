@@ -26,6 +26,10 @@
 		</repository>
 	</distributionManagement>
 
+	<scm>
+		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/trunk</connection>
+		<url>https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/</url>
+	</scm>
 	<organization>
 		<name>RENCI</name>
 		<url>http://www.renci.org</url>

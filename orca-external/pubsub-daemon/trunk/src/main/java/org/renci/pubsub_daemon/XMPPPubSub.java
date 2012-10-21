@@ -38,8 +38,6 @@ import org.jivesoftware.smackx.pubsub.Subscription;
 import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 
 public class XMPPPubSub implements CallbackHandler{
-	private static final String IMF_PLD_NS = "pubsub:imf:measurement";
-	private static final String IMF_PLD_ROOT = "measurement";
 	private static final String ORCA_PLD_NS = "pubsub:orca:manifest";
 	private static final String ORCA_PLD_ROOT = "manifest";
 	private static final String PUBSUB_SERVER_PREFIX = "pubsub.";
@@ -379,35 +377,6 @@ public class XMPPPubSub implements CallbackHandler{
 			logger.error("Error deleting node: " + e);
 		}
 
-	}
-
-
-	/**
-	 * Publish a measurement retrieved from device
-	 * @param nodePath
-	 * @param measurement
-	 */
-	synchronized void publishMeasurement(String nodePath, String measurement) {
-
-		if ((xmppCon == null) || (!xmppCon.isConnected()))
-			login();
-
-		LeafNode ln = getLeafNode(nodePath);
-
-		if (ln == null) {
-			logger.error("Unable to publish measurement: node does not exist");
-			return;
-		}
-		SimplePayload payload = new SimplePayload(IMF_PLD_ROOT,IMF_PLD_NS,
-				"<imf xmlns='" + IMF_PLD_NS + "'>" + measurement + "</imf>");
-		String itemId = String.valueOf(System.currentTimeMillis());
-		PayloadItem<SimplePayload> item = new PayloadItem<SimplePayload>(itemId, payload);
-
-		try {
-			ln.send(item);
-		} catch (XMPPException e) {
-			logger.error("Unable to publish measurement: " + e);
-		}
 	}
 
 	/**
