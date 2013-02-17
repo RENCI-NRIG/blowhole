@@ -146,7 +146,7 @@ public class ManifestSubscriber {
 		sem.release();
 		
 		// start a periodic reporting thread
-		tmr = new Timer();
+		tmr = new Timer("PubSub Reporter", true);
 		tmr.schedule(new TimerTask() {
 			public void run() {
 				Globals.info(Globals.getInstance());
