@@ -115,7 +115,7 @@ public class Globals {
 	}
 	
 	synchronized void decManifests() {
-		manifestsSubscribed --;
+		if (manifestsSubscribed > 0) manifestsSubscribed --;
 	}
 	
 	synchronized void incEvents() {
