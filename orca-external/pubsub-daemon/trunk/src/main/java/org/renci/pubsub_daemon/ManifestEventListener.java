@@ -62,11 +62,12 @@ public class ManifestEventListener implements ItemEventListener<Item> {
 				}
 				
 				String sliceUrn = matcher.group(3);
+				String sliceUuid = matcher.group(4);
 				String sliceSmName = matcher.group(1);
 				String sliceSmGuid = matcher.group(2);
 
 				// spawn a thread from a pool
-				exec.execute(new ManifestWorkerThread(gzippedManifest, sliceUrn, sliceSmName, sliceSmGuid));
+				exec.execute(new ManifestWorkerThread(gzippedManifest, sliceUrn, sliceUuid, sliceSmName, sliceSmGuid));
 			}
 		} catch (Exception e) {
 			Globals.error("Unable to parse item XML: " + e);
