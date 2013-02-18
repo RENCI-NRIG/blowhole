@@ -36,13 +36,15 @@ public class ManifestWorkerThread implements Runnable {
 	private static final String MANIFEST_TO_RSPEC = "ndlConverter.manifestToRSpec3";
 	private final String man;
 	private final String sliceUrn;
+	private final String sliceUuid;
 	private final String sliceSmName;
 	private final String sliceSmGuid;
 
-	ManifestWorkerThread(String manifest, String sliceUrn, String sliceSmName, String sliceSmGuid) {
+	ManifestWorkerThread(String manifest, String sliceUrn, String sliceUuid, String sliceSmName, String sliceSmGuid) {
 		Globals.debug("Worker thread starting for slice "  + sliceUrn + " from " + sliceSmName);
 		man = manifest;
 		this.sliceUrn = sliceUrn;
+		this.sliceUuid = sliceUuid;
 		this.sliceSmName = sliceSmName;
 		this.sliceSmGuid = sliceSmGuid;
 	}
@@ -110,7 +112,7 @@ public class ManifestWorkerThread implements Runnable {
 	public void run() {
 		Globals.info("Decoding/decompressing manifest for slice " + sliceUrn);
 		if (Globals.getInstance().isDebugOn())
-			writeToFile(man, "/tmp/rawman"+sliceUrn);
+			writeToFile(man, "/tmp/rawman" + sliceUrn + "---" + sliceUuid);
 		
 		String ndlMan = null;
 		try {
@@ -124,7 +126,7 @@ public class ManifestWorkerThread implements Runnable {
 			return;
 
 		if (Globals.getInstance().isDebugOn())
-			writeToFile(ndlMan, "/tmp/ndlman"+sliceUrn);
+			writeToFile(ndlMan, "/tmp/ndlman" + sliceUrn + "---" + sliceUuid);
 
 		// insert into the database
 		insertInDb(ndlMan);
@@ -143,7 +145,7 @@ public class ManifestWorkerThread implements Runnable {
 		}
 		
 		if (Globals.getInstance().isDebugOn())
-			writeToFile(rspecMan, "/tmp/rspecman"+sliceUrn);
+			writeToFile(rspecMan, "/tmp/rspecman" + sliceUrn + "---" + sliceUuid);
 		
 		// publish
 		URL pUrl;
@@ -157,7 +159,7 @@ public class ManifestWorkerThread implements Runnable {
 		// file or http(s)
 		if ("file".equals(pUrl.getProtocol())) {
 			// save to file
-			writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn);
+			writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
 		} else {
 			// push
 			try {
