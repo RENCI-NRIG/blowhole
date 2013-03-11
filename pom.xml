@@ -87,6 +87,10 @@
 									<mainClass>org.renci.pubsub_daemon.ListNodes</mainClass>
 									<name>listNodes</name>
 								</program>
+								<program>
+									<mainClass>org.renci.pubsub_daemon.DecodeManifest</mainClass>
+									<name>decodeManifest</name>
+								</program>
 							</programs>
 							<daemons>
 								<daemon>
