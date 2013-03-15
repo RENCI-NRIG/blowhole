@@ -8,6 +8,8 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -152,16 +154,16 @@ public class ManifestWorkerThread implements Runnable {
 			writeToFile(rspecMan, "/tmp/rspecman" + sliceUrn + "---" + sliceUuid);
 		
 		// publish
-		URL pUrl;
+		URI pUrl;
 		try {
-			pUrl = new URL(Globals.getInstance().getPublishUrl());
-		} catch (MalformedURLException e) {
+			pUrl = new URI(Globals.getInstance().getPublishUrl());
+		} catch (URISyntaxException e) {
 			Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getPublishUrl());
 			return;
 		}
 		
 		// exec or file or http(s)
-		if ("exec".equals(pUrl.getProtocol())) {
+		if ("exec".equals(pUrl.getScheme())) {
 			// run through an executable
 			try {
 				File tmpF = File.createTempFile("manifest", null);
@@ -181,13 +183,14 @@ public class ManifestWorkerThread implements Runnable {
 				Globals.error("Unable to save to temp file");
 			}
 		} else 
-			if ("file".equals(pUrl.getProtocol())) {
+			if ("file".equals(pUrl.getScheme())) {
 				// save to file
 				writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
 			} else {
 				// push
 				try {
-					HttpURLConnection httpCon = (HttpURLConnection) pUrl.openConnection();
+					URL u = new URL(Globals.getInstance().getPublishUrl());
+					HttpURLConnection httpCon = (HttpURLConnection) u.openConnection();
 					httpCon.setDoOutput(true);
 					httpCon.setRequestMethod("PUT");
 					OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());

@@ -336,6 +336,8 @@ public class XMPPPubSub implements CallbackHandler{
 			} catch (XMPPException e2) {
 				logger.error("Error listing nodes AGAIN: " + e2);
 			}
+		} catch (Exception e) {
+			logger.error("Unable to list nodes: " + e);
 		}
 		return l;
 	}
