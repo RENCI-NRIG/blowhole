@@ -145,6 +145,8 @@ public class XMPPPubSub implements CallbackHandler{
 				logger.error("Internal server error while creating new account for user: " + user);
 				System.exit(0);
 			}
+		} catch (Exception ee) {
+			logger.error("Unspecified error while creating new account: " + ee);
 		}
 
 		// Disconnect from the server
@@ -206,6 +208,8 @@ public class XMPPPubSub implements CallbackHandler{
 				logger.error("Unable to connect to XMPP server: " + e);
 			} catch (InterruptedException ie) {
 				logger.error("login() thread interrupted:" + ie);
+			} catch (Exception e) {
+				logger.error("Unable to connect to XMPP server: " + e);
 			}
 		}
 		else {
@@ -219,6 +223,8 @@ public class XMPPPubSub implements CallbackHandler{
 				// create pubsub manager
 				manager = new PubSubManager(xmppCon, PUBSUB_SERVER_PREFIX + server);
 			} catch (XMPPException e) {
+				logger.error("Unable to connect to XMPP server: " + e);
+			} catch (Exception e) {
 				logger.error("Unable to connect to XMPP server: " + e);
 			}
 		}
@@ -288,6 +294,9 @@ public class XMPPPubSub implements CallbackHandler{
 		} catch (XMPPException e) {
 			logger.error("Error creating XMPP pubsub node: " + e);
 			return null;
+		} catch (Exception e) {
+			logger.error("Error creating XMPP pubsub node: " + e);
+			return null;
 		}
 	}
 
@@ -297,6 +306,8 @@ public class XMPPPubSub implements CallbackHandler{
 			node.addItemEventListener(listener);
 			return node.subscribe(xmppCon.getUser());
 		} catch (XMPPException e) {
+			logger.error("XMPP Error subscribing to XMPP pubsub node: " + e);
+		} catch (Exception e) {
 			logger.error("Error subscribing to XMPP pubsub node: " + e);
 		}
 		return null;
@@ -307,6 +318,8 @@ public class XMPPPubSub implements CallbackHandler{
 			LeafNode node = (LeafNode)manager.getNode(nodeName);
 			node.unsubscribe(s.getJid(), s.getId());
 		} catch (XMPPException e) {
+			logger.error("XMPP Error unsubscribing from XMPP pubsub node: " + e);
+		} catch (Exception e) {
 			logger.error("Error unsubscribing from XMPP pubsub node: " + e);
 		}
 	}
