@@ -1,9 +1,11 @@
 package org.renci.pubsub_daemon;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,7 +16,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.zip.DataFormatException;
 
 import org.apache.xmlrpc.XmlRpcException;
@@ -156,23 +160,43 @@ public class ManifestWorkerThread implements Runnable {
 			return;
 		}
 		
-		// file or http(s)
-		if ("file".equals(pUrl.getProtocol())) {
-			// save to file
-			writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
-		} else {
-			// push
+		// exec or file or http(s)
+		if ("exec".equals(pUrl.getProtocol())) {
+			// run through an executable
 			try {
-				HttpURLConnection httpCon = (HttpURLConnection) pUrl.openConnection();
-				httpCon.setDoOutput(true);
-				httpCon.setRequestMethod("PUT");
-				OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
-				out.write(rspecMan);
-				out.close();
-			} catch (IOException ioe) {
-				Globals.error("Unable to open connection to " + pUrl);
+				File tmpF = File.createTempFile("manifest", null);
+				String tmpFName = tmpF.getCanonicalPath();
+				writeToFile(rspecMan, tmpF);
+                ArrayList<String> myCommand = new ArrayList<String>();
+
+                myCommand.add(pUrl.getPath());
+                myCommand.add(tmpFName);
+
+                String resp = executeCommand(myCommand, null);
+                
+                Globals.info("Output from script " + pUrl.getPath() + ": " + resp);
+                
+                tmpF.delete();
+			} catch (IOException ie) {
+				Globals.error("Unable to save to temp file");
 			}
-		}
+		} else 
+			if ("file".equals(pUrl.getProtocol())) {
+				// save to file
+				writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
+			} else {
+				// push
+				try {
+					HttpURLConnection httpCon = (HttpURLConnection) pUrl.openConnection();
+					httpCon.setDoOutput(true);
+					httpCon.setRequestMethod("PUT");
+					OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
+					out.write(rspecMan);
+					out.close();
+				} catch (IOException ioe) {
+					Globals.error("Unable to open connection to " + pUrl);
+				}
+			}
 	}
 
 	private void writeToFile(String man, String name) {
@@ -184,6 +208,19 @@ public class ManifestWorkerThread implements Runnable {
 			bw.close();
 		} catch (IOException e) {
 			Globals.error("Unable to write manifest to file " + name);
+		}
+	}
+	
+	private void writeToFile(String man, File f) {
+
+		try {
+			String fName = f.getCanonicalPath();
+			Globals.info("Writing manifest to file " + fName);
+			BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+			bw.write(man);
+			bw.close();
+		} catch (IOException e) {
+			Globals.error("Unable to write manifest to file");
 		}
 	}
 	/**
@@ -234,5 +271,16 @@ public class ManifestWorkerThread implements Runnable {
 
 		return (String)ret.get("ret");
 	}
+	
+	private String executeCommand(List<String> cmd, Properties env) {
+		SystemExecutor se = new SystemExecutor();
 
+		String response = null;
+		try {
+			response = se.execute(cmd, env, null, (Reader)null);
+		} catch (RuntimeException re) {
+			Globals.error("Unable to execute command " + cmd + ": " + re);
+		}
+		return response;
+	}
 }
