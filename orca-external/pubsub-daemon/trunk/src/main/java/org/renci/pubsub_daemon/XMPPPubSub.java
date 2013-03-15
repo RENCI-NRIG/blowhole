@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
+
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -21,10 +23,10 @@ import javax.security.auth.callback.PasswordCallback;
 import org.apache.log4j.Logger;
 import org.jivesoftware.smack.AccountManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
-import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.SASLAuthentication;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.packet.XMPPError;
 import org.jivesoftware.smackx.packet.DiscoverItems;
 import org.jivesoftware.smackx.pubsub.AccessModel;
@@ -49,6 +51,7 @@ public class XMPPPubSub implements CallbackHandler{
 	int port;
 	PubSubManager manager;
 	String resource = PUBSUB_PUBLISHER_RESOURCE;
+	Random generator = new Random(9836402L);
 
 	boolean usecertificate = false;
 	String keystorepath, keystoretype, truststorepath, truststorepass;
@@ -198,8 +201,9 @@ public class XMPPPubSub implements CallbackHandler{
 
 				Thread.sleep(3 * 1000); // Something about timing in the forums
 
-				// Log into the server
-				xmppCon.login(user, password, resource);
+				// Log into the server with random resource
+				int rand = generator.nextInt();
+				xmppCon.login(user, password, resource + "-" + rand);
 				logger.info("Logged " + user + "@" + server + " in.");
 
 				// create pubsub manager
