@@ -68,7 +68,8 @@ public class SystemExecutor {
 			InputStream processOutput = p.getInputStream();
 			BufferedReader bufProcessOutputReader = new BufferedReader(new InputStreamReader(processOutput));
 
-			//InputStream processError = p.getErrorStream();	
+			InputStream processError = p.getErrorStream();	
+			BufferedReader bufProcessErrorReader = new BufferedReader(new InputStreamReader(processError));
 
 			if (sendToProcess != null) {
 				BufferedReader bufSendToProcess = new BufferedReader(sendToProcess);
@@ -100,7 +101,20 @@ public class SystemExecutor {
 			exitValue = p.waitFor();
 
 			if (exitValue != 0)
-				throw new RuntimeException("Command " + pb.command().toString() + " returned exit code " + exitValue);
+				// read stderror
+				try {
+					accumulator = new StringBuilder(); 
+					while((ret = bufProcessErrorReader.readLine()) != null) {
+						accumulator.append(ret);
+					}
+				} catch (IOException e) {
+					if (l != null)
+						l.error(e);
+					else
+						System.err.println(e);
+				}
+				throw new RuntimeException("Command " + pb.command().toString() + " returned exit code " + exitValue + " and error message: \n" + 
+						accumulator.toString());
 		} catch (Exception e) {
 			if (l != null) {
 				l.error(e);
@@ -151,6 +165,9 @@ public class SystemExecutor {
 			InputStream processOutput = p.getInputStream();
 			BufferedInputStream bufferedProcessOutput = new BufferedInputStream(processOutput);
 
+			InputStream processError = p.getErrorStream();	
+			BufferedInputStream bufferedProcessErrorOutput = new BufferedInputStream(processError);
+			
 			if (sendToProcess != null) {
 				bufferedProcessInput.write(sendToProcess);
 				bufferedProcessInput.close();
@@ -174,8 +191,22 @@ public class SystemExecutor {
 			// get exit value 
 			exitValue = p.waitFor();
 
-			if (exitValue != 0)
-				throw new RuntimeException("Command " + pb.command().toString() + " returned exit code " + exitValue);
+			if (exitValue != 0) {
+				// read stderror
+				try {
+					ret = new ByteArrayOutputStream();
+					while ((readBytes=bufferedProcessErrorOutput.read(tmp)) != -1) {
+						ret.write(tmp, 0, readBytes);
+					}
+				} catch (IOException e) {
+					if (l != null)
+						l.error(e);
+					else
+						System.err.println(e);
+				}
+				throw new RuntimeException("Command " + pb.command().toString() + " returned exit code " + exitValue + " and error message: \n" +
+						ret.toByteArray());
+			}
 		} catch (Exception e) {
 			if (l != null) {
 				l.error(e);
