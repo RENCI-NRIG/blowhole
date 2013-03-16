@@ -91,6 +91,10 @@
 									<mainClass>org.renci.pubsub_daemon.DecodeManifest</mainClass>
 									<name>decodeManifest</name>
 								</program>
+								<program>
+									<mainClass>org.renci.pubsub_daemon.ConvertManifest</mainClass>
+									<name>convertManifest</name>
+								</program>
 							</programs>
 							<daemons>
 								<daemon>
@@ -157,7 +161,7 @@
 		<dependency>
 			<groupId>orca</groupId>
 			<artifactId>ndl</artifactId>
-			<version>3.1-extended</version>
+			<version>4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>mysql</groupId>

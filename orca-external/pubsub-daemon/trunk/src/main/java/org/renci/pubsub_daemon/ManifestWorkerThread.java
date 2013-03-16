@@ -88,7 +88,7 @@ public class ManifestWorkerThread implements Runnable {
 					// insert new row
 					Globals.debug("Inserting new row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
 					PreparedStatement pst1 = dbc.prepareStatement("INSERT into `xoslices` ( `slice_name` , `slice_guid` , `slice_owner`, `slice_manifest`, " + 
-					"`slice_manifest_type`, `slice_sm`) values (?, ?, ?, ?, ?, ?)");
+							"`slice_manifest_type`, `slice_sm`) values (?, ?, ?, ?, ?, ?)");
 					pst1.setString(1, parser.getSliceUrn());
 					pst1.setString(2, parser.getSliceUuid());
 					pst1.setString(3, parser.getCreatorUrn());
@@ -114,12 +114,12 @@ public class ManifestWorkerThread implements Runnable {
 				}
 		}
 	}
-	
+
 	public void run() {
 		Globals.info("Decoding/decompressing manifest for slice " + sliceUrn);
 		if (Globals.getInstance().isDebugOn())
 			writeToFile(man, "/tmp/rawman" + sliceUrn + "---" + sliceUuid);
-		
+
 		String ndlMan = null;
 		try {
 			ndlMan = CompressEncode.decodeDecompress(man);
@@ -127,7 +127,7 @@ public class ManifestWorkerThread implements Runnable {
 			Globals.error("Unable to decode manifest");
 			return;
 		}
-		
+
 		if (ndlMan == null)
 			return;
 
@@ -136,9 +136,9 @@ public class ManifestWorkerThread implements Runnable {
 
 		// insert into the database
 		insertInDb(ndlMan);
-		
+
 		Globals.debug("Running through NDL converter");
-		
+
 		String rspecMan = null;
 		try {
 			rspecMan = callConverter(MANIFEST_TO_RSPEC, new Object[]{ndlMan, sliceUrn});
@@ -149,10 +149,10 @@ public class ManifestWorkerThread implements Runnable {
 			Globals.error("Error converting NDL manifest: " + e.getMessage());
 			return;
 		}
-		
+
 		if (Globals.getInstance().isDebugOn())
 			writeToFile(rspecMan, "/tmp/rspecman" + sliceUrn + "---" + sliceUuid);
-		
+
 		// publish
 		URI pUrl;
 		try {
@@ -161,45 +161,46 @@ public class ManifestWorkerThread implements Runnable {
 			Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getPublishUrl());
 			return;
 		}
-		
+
 		// exec or file or http(s)
 		if ("exec".equals(pUrl.getScheme())) {
 			// run through an executable
+			File tmpF = null;
 			try {
-				File tmpF = File.createTempFile("manifest", null);
+				tmpF = File.createTempFile("manifest", null);
 				String tmpFName = tmpF.getCanonicalPath();
 				writeToFile(rspecMan, tmpF);
-                ArrayList<String> myCommand = new ArrayList<String>();
+				ArrayList<String> myCommand = new ArrayList<String>();
 
-                myCommand.add(pUrl.getPath());
-                myCommand.add(tmpFName);
+				myCommand.add(pUrl.getPath());
+				myCommand.add(tmpFName);
 
-                String resp = executeCommand(myCommand, null);
-                
-                Globals.info("Output from script " + pUrl.getPath() + ": " + resp);
-                
-                tmpF.delete();
+				String resp = executeCommand(myCommand, null);
+
+				Globals.info("Output from script " + pUrl.getPath() + ": " + resp);
 			} catch (IOException ie) {
 				Globals.error("Unable to save to temp file");
+			} finally {
+				if (tmpF != null)
+					tmpF.delete();
 			}
-		} else 
-			if ("file".equals(pUrl.getScheme())) {
-				// save to file
-				writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
-			} else {
-				// push
-				try {
-					URL u = new URL(Globals.getInstance().getPublishUrl());
-					HttpURLConnection httpCon = (HttpURLConnection) u.openConnection();
-					httpCon.setDoOutput(true);
-					httpCon.setRequestMethod("PUT");
-					OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
-					out.write(rspecMan);
-					out.close();
-				} catch (IOException ioe) {
-					Globals.error("Unable to open connection to " + pUrl);
-				}
+		} else 	if ("file".equals(pUrl.getScheme())) {
+			// save to file
+			writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
+		} else if ("http".equals(pUrl.getScheme()) || "https".equals(pUrl.getScheme())) {
+			// push
+			try {
+				URL u = new URL(Globals.getInstance().getPublishUrl());
+				HttpURLConnection httpCon = (HttpURLConnection) u.openConnection();
+				httpCon.setDoOutput(true);
+				httpCon.setRequestMethod("PUT");
+				OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
+				out.write(rspecMan);
+				out.close();
+			} catch (IOException ioe) {
+				Globals.error("Unable to open connection to " + pUrl);
 			}
+		}
 	}
 
 	private void writeToFile(String man, String name) {
@@ -213,7 +214,7 @@ public class ManifestWorkerThread implements Runnable {
 			Globals.error("Unable to write manifest to file " + name);
 		}
 	}
-	
+
 	private void writeToFile(String man, File f) {
 
 		try {
@@ -274,7 +275,7 @@ public class ManifestWorkerThread implements Runnable {
 
 		return (String)ret.get("ret");
 	}
-	
+
 	private String executeCommand(List<String> cmd, Properties env) {
 		SystemExecutor se = new SystemExecutor();
 
