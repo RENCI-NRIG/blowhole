@@ -167,6 +167,7 @@ public class ManifestWorkerThread implements Runnable {
 			// run through an executable
 			File tmpF = null;
 			try {
+				Globals.info("Running through script " + pUrl.getPath());
 				tmpF = File.createTempFile("manifest", null);
 				String tmpFName = tmpF.getCanonicalPath();
 				writeToFile(rspecMan, tmpF);
