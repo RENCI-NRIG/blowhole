@@ -100,7 +100,7 @@ public class SystemExecutor {
 
 			exitValue = p.waitFor();
 
-			if (exitValue != 0)
+			if (exitValue != 0) {
 				// read stderror
 				try {
 					accumulator = new StringBuilder(); 
@@ -115,6 +115,7 @@ public class SystemExecutor {
 				}
 				throw new RuntimeException("Command " + pb.command().toString() + " returned exit code " + exitValue + " and error message: \n" + 
 						accumulator.toString());
+			}
 		} catch (Exception e) {
 			if (l != null) {
 				l.error(e);
