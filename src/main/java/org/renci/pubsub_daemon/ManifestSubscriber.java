@@ -37,14 +37,14 @@ public class ManifestSubscriber {
 	private static final String ORCA_SM_PREFIX = "/orca/sm/";
 
 	private static final String PUBSUB_SUBSCRIBER_RESOURCE = "GMOC-Subscriber";
-	private static final String PREF_FILE = ".xmpp.properties";
-	private static final String GLOBAL_PREF_FILE = "/etc/blowhole/xmpp.properties";
+	public static final String PREF_FILE = ".xmpp.properties";
+	public static final String GLOBAL_PREF_FILE = "/etc/blowhole/xmpp.properties";
 	private static final String PUBSUB_PROP_PREFIX = "GMOC.pubsub";
 	private static final String PUBSUB_SERVER_PROP = PUBSUB_PROP_PREFIX + ".server";
 	private static final String PUBSUB_LOGIN_PROP = PUBSUB_PROP_PREFIX + ".login";
 	private static final String PUBSUB_PASSWORD_PROP = PUBSUB_PROP_PREFIX + ".password";
 	private static final String PUBSUB_SMS_PROP = PUBSUB_PROP_PREFIX + ".monitored.sm.list";
-	private static final String PUBSUB_CONVERTER_LIST = PUBSUB_PROP_PREFIX + ".ndl.converter.list";
+	public static final String PUBSUB_CONVERTER_LIST = PUBSUB_PROP_PREFIX + ".ndl.converter.list";
 	private static final String PUBSUB_PUBLISH_URL = PUBSUB_PROP_PREFIX + ".publish.url";
 
 	private static final String DB_URL = "DB.url";
