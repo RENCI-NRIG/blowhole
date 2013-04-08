@@ -1,4 +1,4 @@
-package org.renci.pubsub_daemon;
+package org.renci.pubsub_daemon.util;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,6 +21,8 @@ import java.util.Properties;
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
+import org.renci.pubsub_daemon.Globals;
+import org.renci.pubsub_daemon.ManifestSubscriber;
 
 public class ConvertManifest {
 	private static final String MANIFEST_TO_RSPEC = "ndlConverter.manifestToRSpec3";

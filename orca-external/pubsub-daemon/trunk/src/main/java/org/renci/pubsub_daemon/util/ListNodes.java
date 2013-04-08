@@ -1,7 +1,10 @@
-package org.renci.pubsub_daemon;
+package org.renci.pubsub_daemon.util;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.renci.pubsub_daemon.Globals;
+import org.renci.pubsub_daemon.ManifestSubscriber;
+import org.renci.pubsub_daemon.XMPPPubSub;
 
 /**
  * Delete all nodes in pubsub space

@@ -109,7 +109,7 @@ public class XMPPPubSub implements CallbackHandler{
 	}
 
 
-	protected void createAccountAndDisconnect(){
+	public void createAccountAndDisconnect(){
 
 		int errorCode;
 
@@ -328,7 +328,7 @@ public class XMPPPubSub implements CallbackHandler{
 		}
 	}
 
-	synchronized List<String> listAllNodes() {
+	public synchronized List<String> listAllNodes() {
 		List<String> l = new ArrayList<String>();
 		if ((xmppCon == null) || (!xmppCon.isConnected()))
 			login();
@@ -362,7 +362,7 @@ public class XMPPPubSub implements CallbackHandler{
 	/**
 	 * delete all nodes in the server
 	 */
-	synchronized void deleteAllNodes() {
+	public synchronized void deleteAllNodes() {
 		if ((xmppCon == null) || (!xmppCon.isConnected()))
 			login();
 		try {
@@ -385,7 +385,7 @@ public class XMPPPubSub implements CallbackHandler{
 	/**
 	 * delete a node in the server
 	 */
-	synchronized void deleteNode(String nodepath) {
+	public synchronized void deleteNode(String nodepath) {
 		if ((xmppCon == null) || (!xmppCon.isConnected()))
 			login();
 
