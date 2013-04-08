@@ -113,11 +113,14 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 						newManifestSet.add(t);
 					}
 				}
+				Globals.debug("Checking existing manifest subscriptions for " + item.getNodeId());
 				if (sliceLists.get(item.getNodeId()) != null) {
 					Globals.debug("SM existing subscriptions list: ");
 					for (String m: sliceLists.get(item.getNodeId())) {
 						Globals.debug("\t" + m);
 					}
+				} else
+					Globals.debug("\tNo active subscriptions");
 				
 				synchronized(this) {
 					if (sliceLists.get(item.getNodeId()) != null) {
