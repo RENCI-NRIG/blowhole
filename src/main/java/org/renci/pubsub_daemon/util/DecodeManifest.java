@@ -1,4 +1,4 @@
-package org.renci.pubsub_daemon;
+package org.renci.pubsub_daemon.util;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,6 +8,8 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.zip.DataFormatException;
+
+import org.renci.pubsub_daemon.CompressEncode;
 
 /**
  * Helper program to decode manifests saved in db

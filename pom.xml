@@ -80,19 +80,19 @@
 									<name>blowhole</name>
 								</program>
 								<program>
-									<mainClass>org.renci.pubsub_daemon.DeleteNodes</mainClass>
+									<mainClass>org.renci.pubsub_daemon.util.DeleteNodes</mainClass>
 									<name>deleteNodes</name>
 								</program>
 								<program>
-									<mainClass>org.renci.pubsub_daemon.ListNodes</mainClass>
+									<mainClass>org.renci.pubsub_daemon.util.ListNodes</mainClass>
 									<name>listNodes</name>
 								</program>
 								<program>
-									<mainClass>org.renci.pubsub_daemon.DecodeManifest</mainClass>
+									<mainClass>org.renci.pubsub_daemon.util.DecodeManifest</mainClass>
 									<name>decodeManifest</name>
 								</program>
 								<program>
-									<mainClass>org.renci.pubsub_daemon.ConvertManifest</mainClass>
+									<mainClass>org.renci.pubsub_daemon.util.ConvertManifest</mainClass>
 									<name>convertManifest</name>
 								</program>
 							</programs>

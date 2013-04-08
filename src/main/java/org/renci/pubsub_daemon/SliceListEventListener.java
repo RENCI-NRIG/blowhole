@@ -104,12 +104,20 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 				String[] manifests = listOfManifests.split("\n");
 				Set<String> newManifestSet = new HashSet<String>();
 				
+				Globals.debug("SM Manifest node list: ");
 				for(String m: manifests) {
 					// transform entries into node names
 					String t = getManifestNodeName(item.getNodeId(), m);
-					if (t != null)
+					if (t != null) {
+						Globals.debug("\t" + t);
 						newManifestSet.add(t);
+					}
 				}
+				if (sliceLists.get(item.getNodeId()) != null) {
+					Globals.debug("SM existing subscriptions list: ");
+					for (String m: sliceLists.get(item.getNodeId())) {
+						Globals.debug("\t" + m);
+					}
 				
 				synchronized(this) {
 					if (sliceLists.get(item.getNodeId()) != null) {
@@ -130,7 +138,7 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 						}
 						// subscribe to new
 						for (String s: newElems) {
-							Globals.info("Adding subscription to manifest [1]" + s);
+							Globals.info("Adding subscription to manifest: " + s);
 							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
 							if (subscriptions.get(s) != null)
 								Globals.getInstance().incManifests();
@@ -140,7 +148,7 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 					} else {
 						// subscribe to all
 						for (String s: newManifestSet) {
-							Globals.info("Adding subscription to manifest [2] " + s);
+							Globals.info("Adding subscription to manifest from clean slate: " + s);
 							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
 							if (subscriptions.get(s) != null)
 								Globals.getInstance().incManifests();

@@ -75,7 +75,7 @@ public class ManifestSubscriber {
 		}
 	}
 	
-	ManifestSubscriber(Object o) {
+	public ManifestSubscriber(Object o) {
 		// do nothing (for inheritance)
 	}
 	
