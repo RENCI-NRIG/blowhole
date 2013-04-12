@@ -32,7 +32,7 @@ import org.jivesoftware.smackx.pubsub.Subscription;
  *
  * @author ibaldin
  */
-public class ManifestSubscriber {
+public class ManifestSubscriber implements IPubSubReconnectCallback {
 	private static final String ORCA_SM_SLICE_LIST_SUFFIX = ".+sliceList";
 	private static final String ORCA_SM_PREFIX = "/orca/sm/";
 
@@ -62,9 +62,9 @@ public class ManifestSubscriber {
 
 	protected Properties prefProperties = null;
 	private SliceListEventListener sliceListener = null;
-	private Set<SubscriptionPair> subscriptions = null;
 	private Semaphore sem = new Semaphore(1);
 	private Timer tmr = null;
+	private ResubscribeThread rst = null;
 	
 	static class SubscriptionPair {
 		public Subscription sub;
@@ -135,31 +135,30 @@ public class ManifestSubscriber {
 		// get the list of nodes that list manifests
 		List<String> smNodes = getSMNodeList();
 		
-		subscriptions = new HashSet<SubscriptionPair>();
-		// and subscribe to them
 		sliceListener = new SliceListEventListener();
 		for (String smListNode: smNodes) {
 			logger.info("Subscribing to " + smListNode);
 			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, sliceListener));
-			subscriptions.add(sp);
+			Globals.getInstance().addSubscription(sp);
 		}		
 		sem.release();
 		
 		// start a periodic reporting thread
-		tmr = new Timer("PubSub Reporter", true);
+		tmr = new Timer("PubSub Background", true);
 		tmr.schedule(new TimerTask() {
 			public void run() {
 				Globals.info(Globals.getInstance());
 			}
 		}, 5000, 5000);
+
+		// start resubscribe thread
+		tmr.schedule(rst, 5000, 30000);
 	}
 	
 	protected void finalize() {
 		
-		Globals.info("Shutting down subscriptions");
-		for(SubscriptionPair s: subscriptions) {
-			Globals.getInstance().getXMPP().unsubscribeFromNode(s.node, s.sub);
-		}
+		Globals.info("Shutting down slice list subscriptions");
+		unsubscribeAll(null);
 		sliceListener.finalize();
 	}
 
@@ -239,7 +238,7 @@ public class ManifestSubscriber {
 				return null;
 			}
 			xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, xmppPassword, 
-					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger());
+					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger(), this);
 		}
 		else if((xmppUseCertificate.equalsIgnoreCase("true"))){
 
@@ -263,7 +262,7 @@ public class ManifestSubscriber {
 			
 			xps = new XMPPPubSub(xmppServerPort.split(":")[0], port,
 					xmppLogin, xmppPassword, kspath, kstype, kspath, kspass, 
-					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger());
+					PUBSUB_SUBSCRIBER_RESOURCE, Globals.getInstance().getLogger(), this);
 		}
 		else {
 			Globals.info("Certificate usage property has to be specified as: GMOC.pubsub.usecertificate=[true|false]");
@@ -295,7 +294,8 @@ public class ManifestSubscriber {
 		int port = Integer.parseInt(xmppServerPort.split(":")[1]);
 
 		String defaultPassword = "defaultpass";
-		xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, defaultPassword, Globals.getInstance().getLogger());
+		// callback not needed
+		xps = new XMPPPubSub(xmppServerPort.split(":")[0], port, xmppLogin, defaultPassword, Globals.getInstance().getLogger(), null);
 
 		return xps;
 	}
@@ -332,6 +332,19 @@ public class ManifestSubscriber {
 		return ret;
 	}
 	
+	private void unsubscribeAll(List<String> save) {
+		Globals.info("Unsubscribing from all slice lists");
+		for(SubscriptionPair s: Globals.getInstance().getSubscriptions()) {
+			if ((s.node != null) && (s.sub != null)) {
+				Globals.info("  " + s.node);
+				Globals.getInstance().getXMPP().unsubscribeFromNode(s.node, s.sub);
+				if (save != null)
+					save.add(s.node);
+			}
+		}
+		Globals.getInstance().clearSubscriptions();
+	}
+	
 	protected void addShutDownHandler() {
 		Runtime.getRuntime().addShutdownHook(new Thread (){
 			@Override
@@ -347,17 +360,32 @@ public class ManifestSubscriber {
 						tmr.cancel();
 					
 					Globals.getInstance().setShuttingDown();
-					for(SubscriptionPair s: subscriptions) {
-						if ((s.node != null) && (s.sub != null)) {
-							Globals.info("  " + s.node);
-							Globals.getInstance().getXMPP().unsubscribeFromNode(s.node, s.sub);
-						}
-					}
-					sliceListener.finalize();
+					unsubscribeAll(null);
+					sliceListener.unsubscribeAll(null);
 					Globals.info("Exiting");
 				}
 			}
 		});
+	}
+	
+
+	@Override
+	public String name() {
+		return "Resubscribing callback";
+	}
+
+	@Override
+	public void onReconnect() {
+		// save subscription nodes
+		List<String> listNodes = new ArrayList<String>();
+		List<String> manifestNodes = new ArrayList<String>();
+		
+		// unsubscribe from all
+		unsubscribeAll(listNodes);
+		sliceListener.unsubscribeAll(manifestNodes);
+		
+		// tell resubscription thread
+		rst.updateSliceList(listNodes);
 	}
 	
 	public static void main(String[] args) {
@@ -372,4 +400,5 @@ public class ManifestSubscriber {
 			}
 		}
 	}
+
 }

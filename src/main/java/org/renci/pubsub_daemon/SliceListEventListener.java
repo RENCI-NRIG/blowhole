@@ -32,17 +32,30 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 	}
 	
 	/**
-	 * d-tor
+	 * Unsubscribe from all nodes. Save the node names into list if not null
+	 * @param save
 	 */
-	protected void finalize() {
+	public void unsubscribeAll(List<String> save) {
 		synchronized(this) {
+			Globals.info("Unsubscribing from all manifests");
 			for (String p: subscriptions.keySet()) {
 				if (subscriptions.get(p) != null) {
 					Globals.info("    " + p);
 					Globals.getInstance().getXMPP().unsubscribeFromNode(p, subscriptions.get(p));
+					if (save != null)
+						save.add(p);
 				}
 			}
+			subscriptions.clear();
+			sliceLists.clear();
 		}
+	}
+	
+	/**
+	 * d-tor
+	 */
+	protected void finalize() {
+		unsubscribeAll(null);
 	}
 	
 	// non-destructive set diff ret = s1 \ s2
