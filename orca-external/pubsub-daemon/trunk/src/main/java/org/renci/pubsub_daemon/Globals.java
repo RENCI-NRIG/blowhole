@@ -3,9 +3,13 @@ package org.renci.pubsub_daemon;
 import java.beans.PropertyVetoException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.renci.pubsub_daemon.ManifestSubscriber.SubscriptionPair;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.mchange.v2.c3p0.DataSources;
@@ -35,11 +39,30 @@ public class Globals {
 	private boolean dbValid = false;
 	private ComboPooledDataSource cpds = null;
 	
+	private Set<SubscriptionPair> sliceListSubscriptions = new HashSet<SubscriptionPair>();
+	
 	/** 
 	 * Disallow
 	 */
 	private Globals() {
 		since = new Date();
+	}
+	
+	public synchronized void addSubscription(SubscriptionPair p) {
+		if (p != null)
+			sliceListSubscriptions.add(p);
+	}
+	
+	/**
+	 * Get a copy of subscriptions
+	 * @return
+	 */
+	public synchronized Set<SubscriptionPair> getSubscriptions() {
+		return Collections.unmodifiableSet(sliceListSubscriptions);
+	}
+	
+	public synchronized void clearSubscriptions() {
+		sliceListSubscriptions.clear();
 	}
 	
 	public static Globals getInstance() {

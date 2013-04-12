@@ -23,6 +23,7 @@ import javax.security.auth.callback.PasswordCallback;
 import org.apache.log4j.Logger;
 import org.jivesoftware.smack.AccountManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
+import org.jivesoftware.smack.ConnectionListener;
 import org.jivesoftware.smack.SASLAuthentication;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
@@ -33,6 +34,7 @@ import org.jivesoftware.smackx.pubsub.AccessModel;
 import org.jivesoftware.smackx.pubsub.ConfigureForm;
 import org.jivesoftware.smackx.pubsub.FormType;
 import org.jivesoftware.smackx.pubsub.LeafNode;
+import org.jivesoftware.smackx.pubsub.Node;
 import org.jivesoftware.smackx.pubsub.PayloadItem;
 import org.jivesoftware.smackx.pubsub.PubSubManager;
 import org.jivesoftware.smackx.pubsub.SimplePayload;
@@ -53,8 +55,9 @@ public class XMPPPubSub implements CallbackHandler{
 	String resource = PUBSUB_PUBLISHER_RESOURCE;
 	Random generator = new Random(9836402L);
 
-	boolean usecertificate = false;
-	String keystorepath, keystoretype, truststorepath, truststorepass;
+	private boolean usecertificate = false;
+	private String keystorepath, keystoretype, truststorepath, truststorepass;
+	private final IPubSubReconnectCallback cb; 
 
 	/**
 	 *
@@ -64,24 +67,26 @@ public class XMPPPubSub implements CallbackHandler{
 	 * @param p - password
 	 * @param l - logger object
 	 */
-	XMPPPubSub(String s, int prt, String u, String p, Logger l) {
+	XMPPPubSub(String s, int prt, String u, String p, Logger l, IPubSubReconnectCallback _cb) {
 		logger = l;
 		server = s;
 		port = prt;
 		user = u;
 		password = p;
+		cb = _cb;
 	}
 
-	XMPPPubSub(String s, int prt, String u, String p, String r, Logger l) {
+	XMPPPubSub(String s, int prt, String u, String p, String r, Logger l, IPubSubReconnectCallback _cb) {
 		logger = l;
 		server = s;
 		port = prt;
 		user = u;
 		password = p;
 		resource = r;
+		cb = _cb;
 	}
 
-	XMPPPubSub(String s, int prt, String u, String p, String kspath, String kstype, String tspath, String tspass, Logger l) {
+	XMPPPubSub(String s, int prt, String u, String p, String kspath, String kstype, String tspath, String tspass, Logger l, IPubSubReconnectCallback _cb) {
 		logger = l;
 		server = s;
 		port = prt;
@@ -92,9 +97,10 @@ public class XMPPPubSub implements CallbackHandler{
 		truststorepath = tspath;
 		truststorepass = tspass;
 		usecertificate = true;
+		cb = _cb;
 	}
 
-	XMPPPubSub(String s, int prt, String u, String p, String kspath, String kstype, String tspath, String tspass, String r, Logger l) {
+	XMPPPubSub(String s, int prt, String u, String p, String kspath, String kstype, String tspath, String tspass, String r, Logger l, IPubSubReconnectCallback _cb) {
 		logger = l;
 		server = s;
 		port = prt;
@@ -106,6 +112,7 @@ public class XMPPPubSub implements CallbackHandler{
 		truststorepass = tspass;
 		usecertificate = true;
 		resource = r;
+		cb = _cb;
 	}
 
 
@@ -233,6 +240,39 @@ public class XMPPPubSub implements CallbackHandler{
 			}
 		}
 
+		// add callbacks
+		xmppCon.addConnectionListener(new ConnectionListener() {
+ 
+            @Override
+            public void reconnectionSuccessful() {
+                logger.info("Successfully reconnected to the XMPP server.");
+                if (cb != null) {
+                	logger.info("Calling reconnect callback handler " + cb.name());
+                	cb.onReconnect();
+                }
+            }
+            
+            @Override
+            public void reconnectionFailed(Exception arg0) {
+                logger.info("Failed to reconnect to the XMPP server.");
+            }
+ 
+            @Override
+            public void reconnectingIn(int seconds) {
+                logger.info("Reconnecting in " + seconds + " seconds.");
+            }
+            
+            @Override
+            public void connectionClosedOnError(Exception arg0) {
+                logger.error("Connection to XMPP server was lost.");
+            }
+            
+            @Override
+            public void connectionClosed() {
+                logger.info("XMPP connection was closed.");
+            }
+        });
+		
 	}
 
 	/**
@@ -372,6 +412,12 @@ public class XMPPPubSub implements CallbackHandler{
 				DiscoverItems.Item it = iItems.next();
 				logger.debug("Deleting node " + it.getNode());
 				try {
+					Node n = manager.getNode(it.getNode());
+					if ((n != null) && (n instanceof LeafNode)){
+						LeafNode ln = (LeafNode)n;
+						ln.deleteAllItems();
+					} else
+						logger.info("Unable to delete items of node " + it.getNode());
 					manager.deleteNode(it.getNode());
 				} catch (XMPPException e) {
 					logger.error("Error deleting node: " + e);
@@ -391,6 +437,12 @@ public class XMPPPubSub implements CallbackHandler{
 
 		logger.info("Deleting node " + nodepath);
 		try {
+			Node n = manager.getNode(nodepath);
+			if ((n != null) && (n instanceof LeafNode)){
+				LeafNode ln = (LeafNode)n;
+				ln.deleteAllItems();
+			} else 
+				logger.info("Unable to delete items of node " + nodepath);
 			manager.deleteNode(nodepath);
 		} catch (XMPPException e) {
 			logger.error("Error deleting node: " + e);
@@ -425,6 +477,4 @@ public class XMPPPubSub implements CallbackHandler{
 			logger.error("Unable to publish measurement: " + e);
 		}
 	}
-
-
 }
