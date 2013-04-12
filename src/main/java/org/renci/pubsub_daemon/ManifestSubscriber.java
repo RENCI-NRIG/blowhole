@@ -136,11 +136,20 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		List<String> smNodes = getSMNodeList();
 		
 		sliceListener = new SliceListEventListener();
+		List<String> missingNodes = new ArrayList<String>();
+		Globals.info("Subscribing to known SM manifest lists");
 		for (String smListNode: smNodes) {
-			logger.info("Subscribing to " + smListNode);
-			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, sliceListener));
-			Globals.getInstance().addSubscription(sp);
+			logger.info("  " + smListNode);
+			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, sliceListener)); 
+			if (sp.sub != null) {
+				Globals.info("SUCCESS!");
+				Globals.getInstance().addSubscription(sp);
+			} else {
+				Globals.info("UNABLE, will try again later");
+				missingNodes.add(smListNode);
+			}
 		}		
+		rst.updateSliceList(missingNodes);
 		sem.release();
 		
 		// start a periodic reporting thread
