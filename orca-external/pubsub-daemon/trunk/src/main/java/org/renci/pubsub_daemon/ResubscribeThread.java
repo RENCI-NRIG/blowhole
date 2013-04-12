@@ -30,7 +30,7 @@ public class ResubscribeThread extends TimerTask {
 		
 		// for now only slice lists
 		List<String> success = new ArrayList<String>();
-		Globals.info("Resubscribing to slice lists: ");
+		Globals.info("Trying to (re)subscribe to slice lists: ");
 		for(String smListNode:remainingSliceLists) {
 			Globals.info("  " + smListNode);
 			SubscriptionPair sp = new SubscriptionPair(smListNode, 
@@ -40,7 +40,7 @@ public class ResubscribeThread extends TimerTask {
 				Globals.getInstance().addSubscription(sp);
 				success.add(smListNode);
 			} else 
-				Globals.info("UNABLE, continuing!");
+				Globals.info("UNABLE, will try again later!");
 		}
 		for (String s: success) {
 			remainingSliceLists.remove(s);
@@ -53,6 +53,7 @@ public class ResubscribeThread extends TimerTask {
 			return;
 		}
 		for(String n: lst) {
+			Globals.info("Adding slice list " + n + " for later attempts");
 			remainingSliceLists.add(n);
 		}
 	}
