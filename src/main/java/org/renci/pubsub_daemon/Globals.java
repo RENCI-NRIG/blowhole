@@ -39,6 +39,9 @@ public class Globals {
 	private boolean dbValid = false;
 	private ComboPooledDataSource cpds = null;
 	
+	private SliceListEventListener sll = new SliceListEventListener();
+	private ManifestEventListener ml = new ManifestEventListener();
+	
 	private Set<SubscriptionPair> sliceListSubscriptions = new HashSet<SubscriptionPair>();
 	
 	/** 
@@ -226,5 +229,13 @@ public class Globals {
 	public static void error(Object s) {
 		if (getInstance().getLogger() != null)
 			getInstance().getLogger().error(s);
+	}
+	
+	public SliceListEventListener getSliceListener() {
+		return sll;
+	}
+	
+	public ManifestEventListener getManifestListener() {
+		return ml;
 	}
 }

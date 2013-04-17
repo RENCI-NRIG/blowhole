@@ -25,10 +25,8 @@ import org.xml.sax.InputSource;
 public class SliceListEventListener implements ItemEventListener<Item> {
 	private final Map<String, Set<String>> sliceLists = new HashMap<String, Set<String>>();
 	private final Map<String, Subscription> subscriptions = new HashMap<String, Subscription>();
-	private final ManifestEventListener mev;
 	
 	SliceListEventListener() {
-		mev = new ManifestEventListener();
 	}
 	
 	/**
@@ -155,7 +153,7 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 						// subscribe to new
 						for (String s: newElems) {
 							Globals.info("Adding subscription to manifest: " + s);
-							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
+							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, Globals.getInstance().getManifestListener()));
 							if (subscriptions.get(s) != null)
 								Globals.getInstance().incManifests();
 							else
@@ -165,7 +163,7 @@ public class SliceListEventListener implements ItemEventListener<Item> {
 						// subscribe to all
 						for (String s: newManifestSet) {
 							Globals.info("Adding subscription to manifest from clean slate: " + s);
-							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, mev));
+							subscriptions.put(s, Globals.getInstance().getXMPP().subscribeToNode(s, Globals.getInstance().getManifestListener()));
 							if (subscriptions.get(s) != null)
 								Globals.getInstance().incManifests();
 							else
