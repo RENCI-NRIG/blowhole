@@ -61,10 +61,9 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 	static XPath xp;
 
 	protected Properties prefProperties = null;
-	private SliceListEventListener sliceListener = null;
 	private Semaphore sem = new Semaphore(1);
 	private Timer tmr = null;
-	private ResubscribeThread rst = null;
+	private ResubscribeThread rst;
 	
 	static class SubscriptionPair {
 		public Subscription sub;
@@ -135,12 +134,11 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		// get the list of nodes that list manifests
 		List<String> smNodes = getSMNodeList();
 		
-		sliceListener = new SliceListEventListener();
 		List<String> missingNodes = new ArrayList<String>();
 		Globals.info("Subscribing to known SM manifest lists");
 		for (String smListNode: smNodes) {
 			logger.info("  " + smListNode);
-			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, sliceListener)); 
+			SubscriptionPair sp = new SubscriptionPair(smListNode, xmpp.subscribeToNode(smListNode, Globals.getInstance().getSliceListener())); 
 			if (sp.sub != null) {
 				Globals.info("SUCCESS!");
 				Globals.getInstance().addSubscription(sp);
@@ -149,6 +147,8 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 				missingNodes.add(smListNode);
 			}
 		}		
+		rst = new ResubscribeThread(Globals.getInstance().getSliceListener(), Globals.getInstance().getManifestListener());
+		
 		rst.updateSliceList(missingNodes);
 		sem.release();
 		
@@ -168,7 +168,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		
 		Globals.info("Shutting down slice list subscriptions");
 		unsubscribeAll(null);
-		sliceListener.finalize();
+		Globals.getInstance().getSliceListener().finalize();
 	}
 
 	private Properties loadProperties(String fileName) throws IOException {
@@ -370,7 +370,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 					
 					Globals.getInstance().setShuttingDown();
 					unsubscribeAll(null);
-					sliceListener.unsubscribeAll(null);
+					Globals.getInstance().getSliceListener().unsubscribeAll(null);
 					Globals.info("Exiting");
 				}
 			}
@@ -391,7 +391,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		
 		// unsubscribe from all
 		unsubscribeAll(listNodes);
-		sliceListener.unsubscribeAll(manifestNodes);
+		Globals.getInstance().getSliceListener().unsubscribeAll(manifestNodes);
 		
 		// tell resubscription thread
 		rst.updateSliceList(listNodes);
