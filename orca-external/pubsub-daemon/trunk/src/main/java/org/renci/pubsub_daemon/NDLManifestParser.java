@@ -173,7 +173,7 @@ public class NDLManifestParser implements INdlManifestModelListener, INdlRequest
 	}
 
 	public void ndlNetworkConnectionPath(Resource c, OntModel m,
-			List<Resource> path) {
+			List<List<Resource>> path) {
 		
 	}
 	

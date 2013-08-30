@@ -36,11 +36,11 @@ public class ResubscribeThread extends TimerTask {
 			SubscriptionPair sp = new SubscriptionPair(smListNode, 
 					Globals.getInstance().getXMPP().subscribeToNode(smListNode, sll));
 			if (sp.sub != null) {
-				Globals.info("SUCCESS!");
+				Globals.info("  SUCCESS!");
 				Globals.getInstance().addSubscription(sp);
 				success.add(smListNode);
 			} else 
-				Globals.info("UNABLE, will try again later!");
+				Globals.info("  UNABLE, will try again later!");
 		}
 		for (String s: success) {
 			remainingSliceLists.remove(s);
