@@ -1,4 +1,4 @@
-package org.renci.pubsub_daemon;
+package org.renci.pubsub_daemon.workers;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.renci.pubsub_daemon.Globals;
 
 import orca.ndl.INdlManifestModelListener;
 import orca.ndl.INdlRequestModelListener;

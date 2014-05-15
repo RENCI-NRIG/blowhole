@@ -51,6 +51,8 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 	private static final String DB_USER = "DB.user";
 	private static final String DB_PASS = "DB.password";
 	
+	private static final String WORKER_LIST = "worker.list";
+	
 	// For certificate based login
 	private static final String PUBSUB_USECERTIFICATE_PROP = PUBSUB_PROP_PREFIX + ".usecertificate";
 	private static final String PUBSUB_KEYSTOREPATH_PROP = PUBSUB_PROP_PREFIX + ".keystorepath";
@@ -87,6 +89,15 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		
 		Globals.getInstance().setLogger(logger);
 		
+		// process workers
+		String workerNames = prefProperties.getProperty(WORKER_LIST);
+		if (workerNames == null) {
+			logger.error("You must specify " + WORKER_LIST + " - a comma-separated list of classes implementing worker interfaces");
+			System.exit(1);
+		}
+		
+		Globals.getInstance().setWorkers(workerNames);
+		
 		try {
 			sem.acquire();
 		} catch (InterruptedException e) {
@@ -103,8 +114,8 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		Globals.getInstance().setConverters(converters);
 		
 		String publishUrl = prefProperties.getProperty(PUBSUB_PUBLISH_URL);
-		if (converters == null) {
-			logger.error("You must specify " + PUBSUB_CONVERTER_LIST + " - a comma-separated list of NDL converter URLs");
+		if (publishUrl == null) {
+			logger.error("You must specify " + PUBSUB_PUBLISH_URL + " - a URL for GMOC submission");
 			System.exit(1);
 		}
 		
