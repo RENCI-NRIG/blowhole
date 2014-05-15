@@ -1,15 +1,24 @@
 package org.renci.pubsub_daemon;
 
 import java.beans.PropertyVetoException;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.renci.pubsub_daemon.ManifestSubscriber.SubscriptionPair;
+import org.renci.pubsub_daemon.workers.IWorker;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.mchange.v2.c3p0.DataSources;
@@ -43,6 +52,8 @@ public class Globals {
 	private ManifestEventListener ml = new ManifestEventListener();
 	
 	private Set<SubscriptionPair> sliceListSubscriptions = new HashSet<SubscriptionPair>();
+	
+	private List<IWorker> workers = new LinkedList<IWorker>();
 	
 	/** 
 	 * Disallow
@@ -237,5 +248,81 @@ public class Globals {
 	
 	public ManifestEventListener getManifestListener() {
 		return ml;
+	}
+	
+	public void addWorker(IWorker w) {
+		if (w != null)
+			workers.add(w);
+	}
+	
+	/**
+	 * Parse a comma-separated string, instantiate workers and add them to
+	 * internal list
+	 * @param workerNames
+	 */
+	public void setWorkers(String workerNames) {
+		if (workerNames == null)
+			return;
+		
+		String[] workerNamesAr = workerNames.split(",");
+		
+		for(String wn: workerNamesAr) {
+			try {
+				Class<?> wcl = Class.forName(wn.trim());
+				IWorker iw = (IWorker)wcl.newInstance();
+				addWorker(iw);
+			} catch (ClassNotFoundException cnfe) {
+				throw new RuntimeException("Unable to find class " + wn);
+			} catch (Exception e) {
+				throw new RuntimeException("Unable to instantiate class " + wn + ": " + e);
+			}
+		}
+	}
+	
+	/**
+	 * Returns a copy of a list of registered workers
+	 * @return
+	 */
+	public List<IWorker> getWorkers() {
+		return new LinkedList(workers);
+	}
+
+	public static void writeToFile(String man, String name) {
+		Globals.info("Writing manifest to file " + name);
+
+		try {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(name));
+			bw.write(man);
+			bw.close();
+		} catch (IOException e) {
+			Globals.error("Unable to write manifest to file " + name);
+		}
+	}
+	
+	
+	public static void writeToFile(String man, File f) {
+
+		try {
+			String fName = f.getCanonicalPath();
+			Globals.info("Writing manifest to file " + fName);
+			BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+			bw.write(man);
+			bw.close();
+		} catch (IOException e) {
+			Globals.error("Unable to write manifest to file");
+		}
+	}
+	
+
+	public static String executeCommand(List<String> cmd, Properties env) {
+		SystemExecutor se = new SystemExecutor();
+
+		String response = null;
+		try {
+			response = se.execute(cmd, env, null, (Reader)null);
+		} catch (RuntimeException re) {
+			Globals.error("Unable to execute command " + cmd + ": " + re);
+		}
+		return response;
 	}
 }
