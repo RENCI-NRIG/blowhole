@@ -1,13 +1,13 @@
 package org.renci.pubsub_daemon;
 
-import java.beans.PropertyVetoException;
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -18,10 +18,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.renci.pubsub_daemon.ManifestSubscriber.SubscriptionPair;
-import org.renci.pubsub_daemon.workers.IWorker;
-
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import com.mchange.v2.c3p0.DataSources;
+import org.renci.pubsub_daemon.workers.AbstractWorker;
 
 /**
  * global settings singleton
@@ -42,18 +39,14 @@ public class Globals {
 	private long manifestsSubscribed = 0;
 	private long eventsServed = 0;
 	
-	private String dbUrl = null;
-	private String dbUser = null;
-	private String dbPass = null;
-	private boolean dbValid = false;
-	private ComboPooledDataSource cpds = null;
-	
 	private SliceListEventListener sll = new SliceListEventListener();
 	private ManifestEventListener ml = new ManifestEventListener();
 	
 	private Set<SubscriptionPair> sliceListSubscriptions = new HashSet<SubscriptionPair>();
 	
-	private List<IWorker> workers = new LinkedList<IWorker>();
+	private List<AbstractWorker> workers = new LinkedList<AbstractWorker>();
+	
+	private Properties configProperties = null;
 	
 	/** 
 	 * Disallow
@@ -159,68 +152,7 @@ public class Globals {
 		eventsServed ++;
 	}
 	
-	public void setDbParams(String url, String user, String pass) {
-		dbUrl = url;
-		dbUser = user;
-		dbPass = pass;
-		
-		// if all non-null, create a pooled connection source to the db
-		if ((url == null) || (user == null) || (pass == null)) {
-			dbValid = false;
-			if (cpds != null) {
-				try {
-					DataSources.destroy(cpds);
-				} catch (SQLException se) {
-					error("SQL Error (non fatal): " + se);
-				}
-				cpds = null;
-			}
-			info("Insufficient database parameters, not creating a connection");
-			return;
-		}
-		
-		cpds = new ComboPooledDataSource();
-		try {
-			cpds.setDriverClass("com.mysql.jdbc.Driver");
-		} catch (PropertyVetoException e) {
-			error("Unable to create JDBC MySQL connection (non-fatal): " + e);
-			try {
-				DataSources.destroy(cpds);
-			} catch (SQLException e1) {
-			}
-			cpds = null;
-			dbValid = false;
-			return;
-		}
-		cpds.setJdbcUrl(url);
-		cpds.setUser(user);
-		cpds.setPassword(pass);
-		
-		dbValid = true;
-	}
-	
-	// get a new db connection from pool
-	public Connection getDbConnection() throws SQLException {
-		if (dbValid)
-			return cpds.getConnection();
-		throw new SQLException("Invalid database parameters");
-	}
-	
-	public boolean isDbValid() {
-		return dbValid;
-	}
-	
-	public String getDbUrl() {
-		return dbUrl;
-	}
-	
-	public String getDbUser() {
-		return dbUser;
-	}
-	
-	public String getDbPass() {
-		return dbPass;
-	}
+
 	
 	/*
 	 * Shortcuts
@@ -250,7 +182,7 @@ public class Globals {
 		return ml;
 	}
 	
-	public void addWorker(IWorker w) {
+	public void addWorker(AbstractWorker w) {
 		if (w != null)
 			workers.add(w);
 	}
@@ -269,7 +201,7 @@ public class Globals {
 		for(String wn: workerNamesAr) {
 			try {
 				Class<?> wcl = Class.forName(wn.trim());
-				IWorker iw = (IWorker)wcl.newInstance();
+				AbstractWorker iw = (AbstractWorker)wcl.newInstance();
 				addWorker(iw);
 			} catch (ClassNotFoundException cnfe) {
 				throw new RuntimeException("Unable to find class " + wn);
@@ -283,8 +215,8 @@ public class Globals {
 	 * Returns a copy of a list of registered workers
 	 * @return
 	 */
-	public List<IWorker> getWorkers() {
-		return new LinkedList(workers);
+	public List<AbstractWorker> getWorkers() {
+		return new LinkedList<AbstractWorker>(workers);
 	}
 
 	public static void writeToFile(String man, String name) {
@@ -325,4 +257,28 @@ public class Globals {
 		}
 		return response;
 	}
+	
+	public void setConfigProperties(Properties p) {
+		configProperties = p;
+	}
+	
+	public String getConfigProperty(String name) {
+		return configProperties.getProperty(name);
+	}
+	
+    public static String readFileToString(String path) {
+        byte[] buffer = new byte[(int) new File(path).length()];
+        BufferedInputStream f = null;
+        try {
+                f = new BufferedInputStream(new FileInputStream(path));
+                f.read(buffer);
+        } catch (FileNotFoundException e) {
+                System.err.print("Unable to find file");
+        } catch (IOException ie) {
+                System.err.print("Unable to read file");
+        } finally {
+                if (f != null) try { f.close(); } catch (IOException ignored) { }
+        }
+        return new String(buffer);
+    }	
 }

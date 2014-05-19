@@ -46,11 +46,8 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 	private static final String PUBSUB_SMS_PROP = PUBSUB_PROP_PREFIX + ".monitored.sm.list";
 	public static final String PUBSUB_CONVERTER_LIST = PUBSUB_PROP_PREFIX + ".ndl.converter.list";
 	private static final String PUBSUB_PUBLISH_URL = PUBSUB_PROP_PREFIX + ".publish.url";
+	private static final String DEBUG_PROPERTY = "debug";
 
-	private static final String DB_URL = "DB.url";
-	private static final String DB_USER = "DB.user";
-	private static final String DB_PASS = "DB.password";
-	
 	private static final String WORKER_LIST = "worker.list";
 	
 	// For certificate based login
@@ -88,6 +85,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		Logger logger = Logger.getLogger(this.getClass());
 		
 		Globals.getInstance().setLogger(logger);
+		Globals.getInstance().setConfigProperties(prefProperties);
 		
 		// process workers
 		String workerNames = prefProperties.getProperty(WORKER_LIST);
@@ -97,6 +95,12 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		}
 		
 		Globals.getInstance().setWorkers(workerNames);
+		
+		// process debug setting
+		String debugSet = prefProperties.getProperty(DEBUG_PROPERTY);
+		if ("yes".equalsIgnoreCase(debugSet) || "true".equalsIgnoreCase(debugSet)) {
+			Globals.getInstance().setDebugOn();
+		}
 		
 		try {
 			sem.acquire();
@@ -127,9 +131,6 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 			logger.error("Unable to create XMPP object for creating new accounts");
 			System.exit(1);
 		}
-
-		Globals.getInstance().setDbParams(prefProperties.getProperty(DB_URL), 
-				prefProperties.getProperty(DB_USER), prefProperties.getProperty(DB_PASS));
 		
 		xmppAcctCreation.createAccountAndDisconnect();
 
