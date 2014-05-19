@@ -5,16 +5,16 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.DataFormatException;
 
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
-import org.renci.pubsub_daemon.workers.ICompressedManifestWorker;
-import org.renci.pubsub_daemon.workers.IRSpecWorker;
-import org.renci.pubsub_daemon.workers.IUncompressedManifestWorker;
-import org.renci.pubsub_daemon.workers.IWorker;
+import org.renci.pubsub_daemon.workers.AbstractWorker;
+import org.renci.pubsub_daemon.workers.AbstractWorker.DocType;
 
 /**
  * This thread takes a base-64-encoded and gzipped manifest,
@@ -29,15 +29,15 @@ import org.renci.pubsub_daemon.workers.IWorker;
 public class ManifestWorkerThread implements Runnable {
 
 	private static final String MANIFEST_TO_RSPEC = "ndlConverter.manifestToRSpec3";
-	private final String man;
 	private final String sliceUrn;
 	private final String sliceUuid;
 	private final String sliceSmName;
 	private final String sliceSmGuid;
+	private Map<DocType, String> manifests = new HashMap<DocType, String>();
 
 	ManifestWorkerThread(String manifest, String sliceUrn, String sliceUuid, String sliceSmName, String sliceSmGuid) {
 		Globals.debug("Worker thread starting for slice "  + sliceUrn + " from " + sliceSmName);
-		man = manifest;
+		manifests.put(DocType.COMPRESSED_NDL_MANIFEST, manifest);
 		this.sliceUrn = sliceUrn;
 		this.sliceUuid = sliceUuid;
 		this.sliceSmName = sliceSmName;
@@ -47,11 +47,11 @@ public class ManifestWorkerThread implements Runnable {
 	public void run() {
 		Globals.info("Decoding/decompressing manifest for slice " + sliceUrn);
 		if (Globals.getInstance().isDebugOn())
-			Globals.writeToFile(man, "/tmp/rawman" + sliceUrn + "---" + sliceUuid);
+			Globals.writeToFile(manifests.get(DocType.COMPRESSED_NDL_MANIFEST), "/tmp/rawman" + sliceUrn + "---" + sliceUuid);
 
 		String ndlMan = null;
 		try {
-			ndlMan = CompressEncode.decodeDecompress(man);
+			ndlMan = CompressEncode.decodeDecompress(manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
 		} catch (DataFormatException dfe) {
 			Globals.error("Unable to decode manifest");
 			return;
@@ -60,6 +60,8 @@ public class ManifestWorkerThread implements Runnable {
 		if (ndlMan == null)
 			return;
 
+		manifests.put(DocType.NDL_MANIFEST, ndlMan);
+		
 		if (Globals.getInstance().isDebugOn())
 			Globals.writeToFile(ndlMan, "/tmp/ndlman" + sliceUrn + "---" + sliceUuid);
 		
@@ -79,21 +81,26 @@ public class ManifestWorkerThread implements Runnable {
 		if (Globals.getInstance().isDebugOn())
 			Globals.writeToFile(rspecMan, "/tmp/rspecman" + sliceUrn + "---" + sliceUuid);
 		
+		manifests.put(DocType.RSPEC_MANIFEST, rspecMan);
+		
 		// go through the workers and let them process
-		for(IWorker w: Globals.getInstance().getWorkers()) {
+		for(AbstractWorker w: Globals.getInstance().getWorkers()) {
 			Globals.info("Processing manifest with " + w.getName());
+			List<DocType> types = w.listDocTypes();
+			boolean notAvailable = false;
+			for (DocType t: types) {
+				if (manifests.get(t) == null) {
+					notAvailable = true;
+					Globals.info("Manifest type " + t + " is not available, skipping");
+					break;
+				}
+			}
+			// skip this worker if we can't give it the type of manifest it needs
+			if (notAvailable) 
+				continue;
+			
 			try {
-				if (w instanceof ICompressedManifestWorker) {
-					ICompressedManifestWorker icmw = (ICompressedManifestWorker)w;
-					icmw.processManifest(ndlMan, man, sliceUrn, sliceUuid, sliceSmName, sliceSmGuid);
-				} else if (w instanceof IUncompressedManifestWorker) {	
-					IUncompressedManifestWorker iumw = (IUncompressedManifestWorker)w;
-					iumw.processManifest(ndlMan, sliceUrn, sliceUuid, sliceSmName, sliceSmGuid);
-				} else if (w instanceof IRSpecWorker) {
-					IRSpecWorker irw = (IRSpecWorker)w;
-					irw.processManifest(ndlMan, rspecMan, sliceUrn, sliceUuid, sliceSmName, sliceSmGuid);
-				} else 
-					Globals.error("Unknown worker type: " + w.getClass().getCanonicalName());
+				w.processManifest(manifests, sliceUrn, sliceUuid, sliceSmName, sliceSmGuid);
 			} catch(RuntimeException re) {
 				Globals.error("Unable to process due to: " + re);
 			}

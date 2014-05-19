@@ -8,10 +8,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import org.renci.pubsub_daemon.Globals;
 
-public class GMOCWorker implements IRSpecWorker {
+public class GMOCWorker extends AbstractWorker {
 	public static final String GMOCWorkerName = "GMOC Manifest worker puts submits manifest to GMOC";
 
 	@Override
@@ -20,10 +23,12 @@ public class GMOCWorker implements IRSpecWorker {
 	}
 
 	@Override
-	public void processManifest(String manifest, String rspecMan, String sliceUrn,
-			String sliceUuid, String sliceSmName, String sliceSmGuid)
-			throws RuntimeException {
+	public void processManifest(Map<DocType, String> manifests,
+			String sliceUrn, String sliceUuid, String sliceSmName,
+			String sliceSmGuid) throws RuntimeException {
 		
+		checkManifests(manifests);
+
 		// publish
 		URI pUrl;
 		try {
@@ -41,7 +46,7 @@ public class GMOCWorker implements IRSpecWorker {
 				Globals.info("Running through script " + pUrl.getPath());
 				tmpF = File.createTempFile("manifest", null);
 				String tmpFName = tmpF.getCanonicalPath();
-				Globals.writeToFile(rspecMan, tmpF);
+				Globals.writeToFile(manifests.get(AbstractWorker.DocType.RSPEC_MANIFEST), tmpF);
 				ArrayList<String> myCommand = new ArrayList<String>();
 
 				myCommand.add(pUrl.getPath());
@@ -58,7 +63,7 @@ public class GMOCWorker implements IRSpecWorker {
 			}
 		} else 	if ("file".equals(pUrl.getScheme())) {
 			// save to file
-			Globals.writeToFile(rspecMan, pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
+			Globals.writeToFile(manifests.get(AbstractWorker.DocType.RSPEC_MANIFEST), pUrl.getPath() + "-" + sliceUrn + "---" + sliceUuid);
 		} else if ("http".equals(pUrl.getScheme()) || "https".equals(pUrl.getScheme())) {
 			// push
 			try {
@@ -67,13 +72,18 @@ public class GMOCWorker implements IRSpecWorker {
 				httpCon.setDoOutput(true);
 				httpCon.setRequestMethod("PUT");
 				OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
-				out.write(rspecMan);
+				out.write(manifests.get(AbstractWorker.DocType.RSPEC_MANIFEST));
 				out.close();
 			} catch (IOException ioe) {
 				Globals.error("Unable to open connection to " + pUrl);
 			}
 		}
 		
+	}
+
+	@Override
+	public List<DocType> listDocTypes() {
+		return Arrays.asList(AbstractWorker.DocType.NDL_MANIFEST, AbstractWorker.DocType.RSPEC_MANIFEST);
 	}
 
 }
