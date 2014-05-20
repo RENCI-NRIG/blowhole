@@ -34,7 +34,6 @@ public class Globals {
 	private XMPPPubSub xmpp = null;
 	private Logger logger = null;
 	private Boolean shuttingDown = false;
-	private String publishUrl = null;
 	private Date since = null;
 	private long manifestsSubscribed = 0;
 	private long eventsServed = 0;
@@ -126,14 +125,6 @@ public class Globals {
 	
 	public Boolean isShuttingDown() {
 		return shuttingDown;
-	}
-	
-	public void setPublishUrl(String s) {
-		publishUrl = s;
-	}
-	
-	public String getPublishUrl() {
-		return publishUrl;
 	}
 	
 	public String toString() {

@@ -39,13 +39,13 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 	private static final String PUBSUB_SUBSCRIBER_RESOURCE = "GMOC-Subscriber";
 	public static final String PREF_FILE = ".xmpp.properties";
 	public static final String GLOBAL_PREF_FILE = "/etc/blowhole/xmpp.properties";
-	private static final String PUBSUB_PROP_PREFIX = "GMOC.pubsub";
+	public static final String PUBSUB_PROP_PREFIX = "pubsub";
 	private static final String PUBSUB_SERVER_PROP = PUBSUB_PROP_PREFIX + ".server";
 	private static final String PUBSUB_LOGIN_PROP = PUBSUB_PROP_PREFIX + ".login";
 	private static final String PUBSUB_PASSWORD_PROP = PUBSUB_PROP_PREFIX + ".password";
 	private static final String PUBSUB_SMS_PROP = PUBSUB_PROP_PREFIX + ".monitored.sm.list";
 	public static final String PUBSUB_CONVERTER_LIST = PUBSUB_PROP_PREFIX + ".ndl.converter.list";
-	private static final String PUBSUB_PUBLISH_URL = PUBSUB_PROP_PREFIX + ".publish.url";
+
 	private static final String DEBUG_PROPERTY = "debug";
 
 	private static final String WORKER_LIST = "worker.list";
@@ -107,7 +107,6 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		} catch (InterruptedException e) {
 			
 		}
-		addShutDownHandler();
 		
 		String converters = prefProperties.getProperty(PUBSUB_CONVERTER_LIST);
 		if (converters == null) {
@@ -116,14 +115,6 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		}
 		
 		Globals.getInstance().setConverters(converters);
-		
-		String publishUrl = prefProperties.getProperty(PUBSUB_PUBLISH_URL);
-		if (publishUrl == null) {
-			logger.error("You must specify " + PUBSUB_PUBLISH_URL + " - a URL for GMOC submission");
-			System.exit(1);
-		}
-		
-		Globals.getInstance().setPublishUrl(publishUrl);
 		
 		Globals.info("Creating XMPP connection for new account creation");
 		XMPPPubSub xmppAcctCreation = prepareXMPPForAcctCreation();
@@ -162,6 +153,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		rst = new ResubscribeThread(Globals.getInstance().getSliceListener(), Globals.getInstance().getManifestListener());
 		
 		rst.updateSliceList(missingNodes);
+		addShutDownHandler();
 		sem.release();
 		
 		// start a periodic reporting thread

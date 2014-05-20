@@ -16,6 +16,7 @@ import org.renci.pubsub_daemon.Globals;
 
 public class GMOCWorker extends AbstractWorker {
 	public static final String GMOCWorkerName = "GMOC Manifest worker puts submits manifest to GMOC";
+	private static final String PUBSUB_PUBLISH_URL = "GMOC.publish.url";
 
 	@Override
 	public String getName() {
@@ -32,9 +33,9 @@ public class GMOCWorker extends AbstractWorker {
 		// publish
 		URI pUrl;
 		try {
-			pUrl = new URI(Globals.getInstance().getPublishUrl());
+			pUrl = new URI(Globals.getInstance().getConfigProperty(PUBSUB_PUBLISH_URL));
 		} catch (URISyntaxException e) {
-			Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getPublishUrl());
+			Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getConfigProperty(PUBSUB_PUBLISH_URL));
 			return;
 		}
 
@@ -67,7 +68,7 @@ public class GMOCWorker extends AbstractWorker {
 		} else if ("http".equals(pUrl.getScheme()) || "https".equals(pUrl.getScheme())) {
 			// push
 			try {
-				URL u = new URL(Globals.getInstance().getPublishUrl());
+				URL u = new URL(Globals.getInstance().getConfigProperty(PUBSUB_PUBLISH_URL));
 				HttpURLConnection httpCon = (HttpURLConnection) u.openConnection();
 				httpCon.setDoOutput(true);
 				httpCon.setRequestMethod("PUT");
