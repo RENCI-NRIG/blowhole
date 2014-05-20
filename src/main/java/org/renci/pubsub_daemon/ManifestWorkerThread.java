@@ -103,6 +103,7 @@ public class ManifestWorkerThread implements Runnable {
 				w.processManifest(manifests, sliceUrn, sliceUuid, sliceSmName, sliceSmGuid);
 			} catch(RuntimeException re) {
 				Globals.error("Unable to process due to: " + re);
+				re.printStackTrace();
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package org.renci.pubsub_daemon.workers;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -9,10 +10,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
 
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
@@ -23,21 +26,27 @@ import javax.xml.xpath.XPathFactory;
 import orca.ndl.NdlToRSpecHelper;
 
 import org.renci.pubsub_daemon.Globals;
+import org.renci.pubsub_daemon.util.DbPool;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-public class GENIWorker extends XODbWorker {
-	public static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
-	public static final String COMMON_PATH = "/rspec/*/";
-	public static final String SLIVER_INFO_PATH = "geni_sliver_info";
-	public static final String SLIVER_SCHEMA = "http://www.gpolab.bbn.com/monitoring/schema/20140501/sliver#";
+public class GENIWorker extends AbstractWorker {
+	private static final String GEMNI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
+	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
+	protected static final String COMMON_PATH = "/rspec/*/";
+	protected static final String SLIVER_INFO_PATH = "geni_sliver_info";
+	protected static final String SLIVER_SCHEMA = "http://www.gpolab.bbn.com/monitoring/schema/20140501/sliver#";
 
-	public static final String GENIDS_URL = "GENIDS.url";
-	public static final String GENIDS_USER = "GENIDS.user";
-	public static final String GENIDS_PASS = "GENIDS.password";
-	public static Semaphore sem = new Semaphore(1);
+	private static final String GENIDS_URL = "GENIDS.url";
+	private static final String GENIDS_USER = "GENIDS.user";
+	private static final String GENIDS_PASS = "GENIDS.password";
+
+	protected static DbPool conPool = null;
+	protected static Boolean flag = true;
+
+	protected String sliceUrn, sliceUuid, sliceSmName, sliceSmGuid;
 
 	@Override
 	public String getName() {
@@ -49,6 +58,13 @@ public class GENIWorker extends XODbWorker {
 			String sliceUrn, String sliceUuid, String sliceSmName,
 			String sliceSmGuid) throws RuntimeException {
 
+		synchronized(flag) {
+			if (conPool == null) 
+				conPool = new DbPool(Globals.getInstance().getConfigProperty(GENIDS_URL), 
+						Globals.getInstance().getConfigProperty(GENIDS_USER), 
+						Globals.getInstance().getConfigProperty(GENIDS_PASS));
+		}
+
 		checkManifests(manifests);
 
 		this.manifests = manifests;
@@ -56,10 +72,6 @@ public class GENIWorker extends XODbWorker {
 		this.sliceUuid = sliceUuid;
 		this.sliceSmName = sliceSmName;
 		this.sliceSmGuid = sliceSmGuid;
-
-		setDbParams(Globals.getInstance().getConfigProperty(GENIDS_URL), 
-				Globals.getInstance().getConfigProperty(GENIDS_USER), 
-				Globals.getInstance().getConfigProperty(GENIDS_PASS));
 
 		insertInDb();
 	}
@@ -83,7 +95,7 @@ public class GENIWorker extends XODbWorker {
 			NodeList nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
 
 			//String selfRefPrefix = "http://rci-hn.exogeni.net/info/";
-			String selfRefPrefix = getConfigProperty("selfref.prefix");
+			String selfRefPrefix = getConfigProperty(GEMNI_SELFREF_PREFIX_PROPERTY);
 
 			if (selfRefPrefix == null) {
 				Globals.error("selfref.prefix is not set; should be a url pointing to this datastore");
@@ -116,9 +128,18 @@ public class GENIWorker extends XODbWorker {
 
 				if (xpath.compile(SLIVER_INFO_PATH).evaluate(nl.item(i)) != null) {
 					String creator = xpath.compile(SLIVER_INFO_PATH + "/@creator_urn").evaluate(nl.item(i));
+					
 					URI creator_urn = null;
-					if ((creator != null) && (creator.split(",").length == 2))
-						creator_urn = new URI(creator.split(",")[1].trim());
+					try {
+						if ((creator != null) && (creator.split(",").length == 2))
+							creator_urn = new URI(creator.split(",")[1].trim());
+						else { 
+							creator_urn = new URI(dnToUrn(creator));
+						}
+					} catch (URISyntaxException ue) {
+						Globals.error("Unable to parse creator string " + creator + ", replacing with dummy value");
+						creator_urn = new URI("urn:publicid:IDN+unknownuser");
+					}
 
 					String created = xpath.compile(SLIVER_INFO_PATH + "/@start_time").evaluate(nl.item(i));
 					Calendar cal = javax.xml.bind.DatatypeConverter.parseDateTime(created);
@@ -131,28 +152,28 @@ public class GENIWorker extends XODbWorker {
 					if ((resource == null) || (resource.length() == 0)) {
 						continue;
 					}
-					
+
 					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", resource);
 					String resource_href = selfRefPrefix + "resource/" + resource;
 
-					sem.acquire();
 					if (Globals.getInstance().isDebugOn()) {
-						Globals.info("Slice: " + sliceUrn + " uuid: " + sliceUuid);
-						Globals.info("Sliver: " + type + " " + sliver_id + " " + sliver_uuid + " " + sliver_href);
-						Globals.info("URN of " + type + ": "+ sliver_urn);
-						Globals.info("Aggregate URN: " + aggregate_urn + " id: " + agg_id + " href:" + aggregate_href);
-						Globals.info("TS: " + ts.getTime());
-						Globals.info("Creator URN: " + creator_urn);
-						Globals.info("Created: " + createdDate.getTime() + " expires: " + expiresDate.getTime());
-						Globals.info("Resource URN: " + resource_urn);
+						Globals.debug("Slice: " + sliceUrn + " uuid: " + sliceUuid);
+						Globals.debug("Sliver: " + type + " " + sliver_id + " " + sliver_uuid + " " + sliver_href);
+						Globals.debug("URN of " + type + ": "+ sliver_urn);
+						Globals.debug("Aggregate URN: " + aggregate_urn + " id: " + agg_id + " href:" + aggregate_href);
+						Globals.debug("TS: " + ts.getTime());
+						Globals.debug("Creator URN: " + creator_urn);
+						Globals.debug("Created: " + createdDate.getTime() + " expires: " + expiresDate.getTime());
+						Globals.debug("Resource URN: " + resource_urn);
 					}
-					sem.release();
 
-					if (!isDbValid()) 
+					if (!conPool.poolValid()) {
+						Globals.error("Datastore parameters are not valid, not saving");
 						continue;
-						
+					}
+
 					// insert into datastore
-					dbc = getDbConnection();
+					dbc = conPool.getDbConnection();
 
 					// insert into ops_sliver
 					Globals.debug("Inserting into ops_sliver");
@@ -193,7 +214,6 @@ public class GENIWorker extends XODbWorker {
 					pst3.setString(4, resource_href);
 					pst3.execute();
 					pst3.close();
-
 				}
 			}
 		} catch (SAXParseException err) {
@@ -203,6 +223,7 @@ public class GENIWorker extends XODbWorker {
 		} catch (SQLException e) {
 			throw new RuntimeException("Unable to insert into the database: " + e);
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new RuntimeException("Unable to parse the manifest: " + e);
 		} finally {
 			if (dbc != null)
@@ -218,31 +239,38 @@ public class GENIWorker extends XODbWorker {
 	public List<DocType> listDocTypes() {
 		return Arrays.asList(DocType.RSPEC_MANIFEST);
 	}
-
-	@SuppressWarnings("restriction")
-	public static void main(String[] argv) {
-		GENIWorker gw = new GENIWorker();
-
-		//String rspec = Globals.readFileToString(argv[0]);
-		//Map<DocType, String> m = new HashMap<DocType, String>();
-		//System.out.println("Expected types: " + gw.listDocTypes());
-		//m.put(DocType.RSPEC_MANIFEST, rspec);		
-		//gw.processManifest(m, null, null, null, null);
-
-		Calendar cal = javax.xml.bind.DatatypeConverter.parseDateTime("2010-01-01T12:00:00Z");
-		Calendar cal1 = javax.xml.bind.DatatypeConverter.parseDateTime("2014-05-19T12:07:36.763-05:00");
-
-		System.out.println(cal.getTime());
-
-		System.out.println(cal1.getTime());
-
-		String component_manager_id = "urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am";
-
-		String[] siteId = component_manager_id.split("\\+");
-		String[] globalComp = siteId[Math.min(siteId.length - 1 , 1)].split(":");
-		String aggId = globalComp[Math.min(globalComp.length - 1, 1)];
-
-		System.out.println("Aggregate id " +aggId );
-
+	
+	/**
+	 * Convert a DN into a URN (mostly for BEN credentials)
+	 * urn:publicid:IDN+ch.geni.net+user+ekishore
+	 * @param s
+	 * @return
+	 * @throws RuntimeException
+	 */
+	private static String dnToUrn(String s) throws RuntimeException {
+		if ((s != null) && (s.length() > 0)) {
+			// see if this is a CN?
+			try {
+				LdapName ln = new LdapName(s);
+				Enumeration<String> all = ln.getAll();
+				StringBuilder sb = new StringBuilder();
+				sb.append("urn:publicid:IDN+");
+				while(all.hasMoreElements()) {
+					String[] a = all.nextElement().split("=");
+					if ("O".equals(a[0])) {
+						a[1].replaceAll("[^a-zA-Z_0-9]", "");
+						sb.append(a[1].replaceAll("[^a-zA-Z_0-9]", "") + "+"); 
+					}
+					if ("CN".equals(a[0])) {
+						sb.append("user+" + a[1]);
+					}
+				}
+				return sb.toString();
+			} catch (InvalidNameException ie) {
+				throw new RuntimeException("String " + s + " not a DN");
+			}
+		} else {
+			throw new RuntimeException("String is empty");
+		}
 	}
 }

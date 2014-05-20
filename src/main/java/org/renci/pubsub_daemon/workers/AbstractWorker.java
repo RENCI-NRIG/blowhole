@@ -14,6 +14,7 @@ import org.renci.pubsub_daemon.Globals;
 public abstract class AbstractWorker {
 	
 	public enum DocType { NDL_MANIFEST, COMPRESSED_NDL_MANIFEST, RSPEC_MANIFEST };
+	protected Map<DocType, String> manifests;
 	
 	/**
 	 * Provide the name/description of this worker plugin
