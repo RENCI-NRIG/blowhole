@@ -141,12 +141,12 @@
 		<dependency>
 			<groupId>org.jivesoftware.smack</groupId>
 			<artifactId>smack-pubsub</artifactId>
-			<version>3.1.0</version>
+			<version>3.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jivesoftware.smackx</groupId>
 			<artifactId>smackx-pubsub</artifactId>
-			<version>3.1.0</version>
+			<version>3.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-codec</groupId>
