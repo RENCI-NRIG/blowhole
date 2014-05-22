@@ -33,7 +33,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 public class GENIWorker extends AbstractWorker {
-	private static final String GEMNI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
+	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
 	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
 	protected static final String COMMON_PATH = "/rspec/*/";
 	protected static final String SLIVER_INFO_PATH = "geni_sliver_info";
@@ -95,19 +95,16 @@ public class GENIWorker extends AbstractWorker {
 			NodeList nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
 
 			//String selfRefPrefix = "http://rci-hn.exogeni.net/info/";
-			String selfRefPrefix = getConfigProperty(GEMNI_SELFREF_PREFIX_PROPERTY);
+			String selfRefPrefix = getConfigProperty(GENI_SELFREF_PREFIX_PROPERTY);
 
 			if (selfRefPrefix == null) {
 				Globals.error("selfref.prefix is not set; should be a url pointing to this datastore");
-				selfRefPrefix = "please set selfref.prefix";
+				selfRefPrefix = "please set selfref.prefix ";
 			}
 
 			// get sliver information
 			for (int i = 0; i < nl.getLength(); i++) {
 				String type = nl.item(i).getNodeName();
-				// Skipping links for now
-				if ("link".equals(type.trim()))
-					continue;
 
 				URI sliver_urn = new URI(xpath.compile("@sliver_id").evaluate(nl.item(i)));
 
@@ -117,7 +114,9 @@ public class GENIWorker extends AbstractWorker {
 
 				Date ts = new Date();
 
-				URI aggregate_urn = new URI(xpath.compile("@component_manager_id").evaluate(nl.item(i)));
+				// we get it from sliver_id because it is consistent for nodes and links
+				// links don't have a single component manager id, so its a pain. /ib 05/22/14
+				URI aggregate_urn = new URI(xpath.compile("@sliver_id").evaluate(nl.item(i)));
 				String[] siteId = aggregate_urn.toString().split("\\+");
 				// fully qualified aggregate id (e.g. exogeni.net:bbnvmsite)
 				String full_agg_id = siteId[Math.min(siteId.length - 1, 1)];
