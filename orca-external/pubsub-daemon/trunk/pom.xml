@@ -16,14 +16,12 @@
 			<name>RENCI Nexus IMF</name>
 			<url>https://ci-dev.renci.org/nexus/content/repositories/geni-imf-libs</url>
 		</repository>
-	</repositories>
-	<distributionManagement>
 		<repository>
-			<id>geni-imf-libs</id>
-			<name>RENCI Nexus IMF</name>
-			<url>https://ci-dev.renci.org/nexus/content/repositories/geni-imf-libs</url>
+			<id>orca-snapsbots</id>
+			<name>ORCA SNAPSHOTS</name>
+			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-orca-snapshot/</url>
 		</repository>
-	</distributionManagement>
+	</repositories>
 
 	<scm>
 		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/trunk</connection>
@@ -43,8 +41,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.0.2</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.7</source>
+					<target>1.7</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -153,6 +151,7 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.6</version>
 		</dependency>
+<!--  
 		<dependency>
 			<groupId>org.apache.xmlrpc</groupId>
 			<artifactId>xmlrpc-client</artifactId>
@@ -161,8 +160,9 @@
 		<dependency>
 			<groupId>orca</groupId>
 			<artifactId>ndl</artifactId>
-			<version>4.0-SNAPSHOT</version>
+			<version>5.0-SNAPSHOT</version>
 		</dependency>
+-->
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
@@ -172,6 +172,11 @@
 			<groupId>c3p0</groupId>
 			<artifactId>c3p0</artifactId>
 			<version>0.9.1</version>
+		</dependency>
+		<dependency>
+			<groupId>orca.ndl-conversion</groupId>
+			<artifactId>core</artifactId>
+			<version>0.8-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>

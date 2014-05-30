@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.DataFormatException;
 
+import orca.ndl_conversion.IMultiFormatConverter;
+import orca.ndl_conversion.UniversalNDLConverter;
+
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
@@ -69,15 +72,33 @@ public class ManifestWorkerThread implements Runnable {
 
 		String rspecMan = null;
 		try {
-			rspecMan = callConverter(MANIFEST_TO_RSPEC, new Object[]{ndlMan, sliceUrn});
-		} catch (MalformedURLException e) {
-			Globals.error("NDL Converter URL error: " + Globals.getInstance().getConverters());
-			return;
+			if (Globals.getInstance().getConverters() != null) {
+				Globals.info("Invoking external converter from " + Globals.getInstance().getConverters());
+				rspecMan = callConverter(MANIFEST_TO_RSPEC, new Object[]{ndlMan, sliceUrn});
+				
+			} else {
+				Globals.info("Invoking internal converter");
+				IMultiFormatConverter ucc = Globals.getInstance().getInternalConverter();
+
+				Map<String, Object> res = ucc.manifestToRSpec3(ndlMan, sliceUrn);
+				if ((res.get("err") != null) && ((Boolean)res.get("err") == true)) {
+					Globals.error("Error encountered while converting to RSpec: " + res.get("err"));
+					return;
+				}
+				else
+					rspecMan = (String)res.get("ret");
+			}
+			if (rspecMan == null) {
+				Globals.error("RSpec manifest is null, conversion failed, exiting");
+				return;
+			}
+			
 		} catch (Exception e) {
 			Globals.error("Error converting NDL manifest: " + e.getMessage());
 			return;
 		}
 
+		Globals.debug("Conversion successful");
 		if (Globals.getInstance().isDebugOn())
 			Globals.writeToFile(rspecMan, "/tmp/rspecman" + sliceUrn + "---" + sliceUuid);
 		

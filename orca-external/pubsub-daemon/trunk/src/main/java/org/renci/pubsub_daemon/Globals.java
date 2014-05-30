@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import orca.ndl_conversion.IMultiFormatConverter;
+import orca.ndl_conversion.UniversalNDLConverter;
+
 import org.apache.log4j.Logger;
 import org.renci.pubsub_daemon.ManifestSubscriber.SubscriptionPair;
 import org.renci.pubsub_daemon.workers.AbstractWorker;
@@ -37,6 +40,7 @@ public class Globals {
 	private Date since = null;
 	private long manifestsSubscribed = 0;
 	private long eventsServed = 0;
+	private IMultiFormatConverter internalConverter = null;
 	
 	private SliceListEventListener sll = new SliceListEventListener();
 	private ManifestEventListener ml = new ManifestEventListener();
@@ -272,4 +276,17 @@ public class Globals {
         }
         return new String(buffer);
     }	
+    
+    /**
+     * Not doing it by default because the logger should be present first
+     */
+    public void createInternalConverter() {
+    	if (logger == null)
+    		logger = Logger.getLogger(this.getClass());
+    	internalConverter = new UniversalNDLConverter(logger);
+    }
+    
+    public IMultiFormatConverter getInternalConverter() {
+    	return internalConverter;
+    }
 }
