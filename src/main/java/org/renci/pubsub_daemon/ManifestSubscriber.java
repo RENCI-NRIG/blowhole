@@ -109,12 +109,12 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		}
 		
 		String converters = prefProperties.getProperty(PUBSUB_CONVERTER_LIST);
-		if (converters == null) {
-			logger.error("You must specify " + PUBSUB_CONVERTER_LIST + " - a comma-separated list of NDL converter URLs");
-			System.exit(1);
+		if ((converters != null) && (converters.length() > 0)) { 
+			Globals.getInstance().setConverters(converters);
+		} else { 
+			// 	create internal NDL converter
+			Globals.getInstance().createInternalConverter();
 		}
-		
-		Globals.getInstance().setConverters(converters);
 		
 		Globals.info("Creating XMPP connection for new account creation");
 		XMPPPubSub xmppAcctCreation = prepareXMPPForAcctCreation();
