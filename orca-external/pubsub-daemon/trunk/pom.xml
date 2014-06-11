@@ -7,20 +7,28 @@
 	<description>Listens to Orca Manifests and pushes them out</description>
 	<repositories>
 		<repository>
+			<id>geni-orca-snapshot</id>
+			<name>ORCA SNAPSHOTS</name>
+			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-orca-snapshot/</url>
+			<snapshots>
+                		<enabled>true</enabled>
+            		</snapshots>
+		</repository>
+		<repository>
 			<id>geni-orca-libs</id>
 			<name>Orca Project Maven Repository</name>
 			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-orca-libs</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
 		</repository>
+<!--
 		<repository>
 			<id>geni-imf-libs</id>
 			<name>RENCI Nexus IMF</name>
-			<url>https://ci-dev.renci.org/nexus/content/repositories/geni-imf-libs</url>
+			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-imf-libs</url>
 		</repository>
-		<repository>
-			<id>orca-snapsbots</id>
-			<name>ORCA SNAPSHOTS</name>
-			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-orca-snapshot/</url>
-		</repository>
+-->
 	</repositories>
 
 	<scm>
@@ -134,7 +142,7 @@
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
-			<version>1.2.15</version>
+			<version>1.2.17</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jivesoftware.smack</groupId>
