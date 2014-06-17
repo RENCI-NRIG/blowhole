@@ -76,7 +76,29 @@ public class GENIWorker extends AbstractWorker {
 		insertInDb();
 	}
 
-	@SuppressWarnings("restriction")
+	private void executeAndClose(PreparedStatement pst) {
+		executeAndClose(pst, 0);
+	}
+	
+	private final static int SQL_RETRIES = 3;
+	
+	/**
+	 * Guard against transient SQL errors
+	 * @param pst
+	 * @param tryIndex
+	 */
+	private void executeAndClose(PreparedStatement pst, int tryIndex) {
+		try {
+			pst.execute();
+			pst.close();
+		} catch (SQLException e) {
+			if (tryIndex < SQL_RETRIES)
+				executeAndClose(pst, ++tryIndex);
+			else
+				throw new RuntimeException("Unable to insert into the database: " + e);
+		}
+	}
+	
 	private void insertInDb() {
 		Connection dbc = null;
 		try {
@@ -191,8 +213,7 @@ public class GENIWorker extends AbstractWorker {
 					pst1.setString(11, creator_urn.toString());
 					pst1.setLong(12, createdDate.getTime());
 					pst1.setLong(13, expiresDate.getTime());
-					pst1.execute();
-					pst1.close();
+					executeAndClose(pst1);
 
 					// insert into ops_aggregate_sliver
 					Globals.debug("Inserting into ops_aggregate_sliver");
@@ -201,8 +222,7 @@ public class GENIWorker extends AbstractWorker {
 					pst2.setString(2, agg_id);
 					pst2.setString(3, aggregate_urn.toString());
 					pst2.setString(4, aggregate_href);
-					pst2.execute();
-					pst2.close();
+					executeAndClose(pst2);
 
 					// insert into ops_sliver_resource
 					Globals.debug("Inserting into ops_sliver_resource");
@@ -211,8 +231,7 @@ public class GENIWorker extends AbstractWorker {
 					pst3.setString(2, sliver_id);
 					pst3.setString(3, resource_urn.toString());
 					pst3.setString(4, resource_href);
-					pst3.execute();
-					pst3.close();
+					executeAndClose(pst3);
 				}
 			}
 		} catch (SAXParseException err) {
