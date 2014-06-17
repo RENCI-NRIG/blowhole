@@ -118,6 +118,22 @@
 												<name>run.as.user.envvar</name>
 												<value>geni-orca</value>
 											</property>
+											<property>
+												<name>wrapper.logfile</name>
+												<value>/var/log/blowhole/blowhole-stdout.log</value>
+											</property>
+											<property>
+												<name>wrapper.logfile.loglevel</name>
+												<value>DEBUG</value>
+											</property>
+											<property>
+												<name>wrapper.logfile.maxsize</name>
+												<value>10M</value>
+											</property>
+											<property>
+												<name>wrapper.logfile.maxfiles</name>
+												<value>10</value>
+											</property>
 										</configuration>
 										</generatorConfiguration>
 									</generatorConfigurations>
