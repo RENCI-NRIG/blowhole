@@ -86,8 +86,7 @@ public class XODbWorker extends AbstractWorker {
 					pst1.setString(1, manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
 					pst1.setString(2, parser.getSliceUuid());
 					pst1.setString(3, sliceSmName);
-					pst1.execute();
-					pst1.close();
+					executeAndClose(pst1);
 				} else {
 					// insert new row
 					Globals.debug("Inserting new row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
@@ -99,8 +98,7 @@ public class XODbWorker extends AbstractWorker {
 					pst1.setString(4, manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
 					pst1.setString(5, ManifestTypes.GZIPPED_ENCODED_NDL.name);
 					pst1.setString(6, sliceSmName);
-					pst1.execute();
-					pst1.close();
+					executeAndClose(pst1);
 				}
 				rs.close();
 				pst.close();
@@ -129,5 +127,28 @@ public class XODbWorker extends AbstractWorker {
 	@Override
 	public List<DocType> listDocTypes() {
 		return Arrays.asList(AbstractWorker.DocType.COMPRESSED_NDL_MANIFEST, AbstractWorker.DocType.NDL_MANIFEST);
+	}
+	
+	private void executeAndClose(PreparedStatement pst) {
+		executeAndClose(pst, 0);
+	}
+	
+	private final static int SQL_RETRIES = 3;
+	
+	/**
+	 * Guard against transient SQL errors
+	 * @param pst
+	 * @param tryIndex
+	 */
+	private void executeAndClose(PreparedStatement pst, int tryIndex) {
+		try {
+			pst.execute();
+			pst.close();
+		} catch (SQLException e) {
+			if (tryIndex < SQL_RETRIES)
+				executeAndClose(pst, ++tryIndex);
+			else
+				throw new RuntimeException("Unable to insert into the database: " + e);
+		}
 	}
 }
