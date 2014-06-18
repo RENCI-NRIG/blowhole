@@ -33,6 +33,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 public class GENIWorker extends AbstractWorker {
+	private static final int MS_TO_US = 1000;
 	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
 	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
 	protected static final String COMMON_PATH = "/rspec/*/";
@@ -205,14 +206,14 @@ public class GENIWorker extends AbstractWorker {
 					pst1.setString(3,  sliver_href);
 					pst1.setString(4, sliver_urn.toString());
 					pst1.setString(5, sliver_uuid);
-					pst1.setLong(6, ts.getTime());
+					pst1.setLong(6, ts.getTime()*MS_TO_US);
 					pst1.setString(7, aggregate_urn.toString());
 					pst1.setString(8, aggregate_href);
 					pst1.setString(9, sliceUrn);
 					pst1.setString(10, sliceUuid);
 					pst1.setString(11, creator_urn.toString());
-					pst1.setLong(12, createdDate.getTime());
-					pst1.setLong(13, expiresDate.getTime());
+					pst1.setLong(12, createdDate.getTime()*MS_TO_US);
+					pst1.setLong(13, expiresDate.getTime()*MS_TO_US);
 					executeAndClose(pst1);
 
 					// insert into ops_aggregate_sliver
