@@ -139,15 +139,15 @@ public class GENIWorker extends AbstractWorker {
 
 				// we get it from sliver_id because it is consistent for nodes and links
 				// links don't have a single component manager id, so its a pain. /ib 05/22/14
-				URI aggregate_urn = new URI(xpath.compile("@sliver_id").evaluate(nl.item(i)));
-				String[] siteId = aggregate_urn.toString().split("\\+");
+				String[] siteId = sliver_urn.toString().split("\\+");
 				// fully qualified aggregate id (e.g. exogeni.net:bbnvmsite)
 				String full_agg_id = siteId[Math.min(siteId.length - 1, 1)];
 				String[] globalComp = siteId[Math.min(siteId.length - 1 , 1)].split(":");
 				// short aggregate id (e.g. bbnvmsite)
 				String agg_id = globalComp[Math.min(globalComp.length - 1, 1)];
 				String aggregate_href = selfRefPrefix + "aggregate/" + agg_id;
-
+				URI aggregate_urn = new URI(NdlToRSpecHelper.CM_URN_PATTERN.replaceAll("@", agg_id));
+	
 				if (xpath.compile(SLIVER_INFO_PATH).evaluate(nl.item(i)) != null) {
 					String creator = xpath.compile(SLIVER_INFO_PATH + "/@creator_urn").evaluate(nl.item(i));
 					
@@ -187,6 +187,7 @@ public class GENIWorker extends AbstractWorker {
 						Globals.debug("Creator URN: " + creator_urn);
 						Globals.debug("Created: " + createdDate.getTime() + " expires: " + expiresDate.getTime());
 						Globals.debug("Resource URN: " + resource_urn);
+						Globals.debug("Resource: " + resource);
 					}
 
 					if (!conPool.poolValid()) {
