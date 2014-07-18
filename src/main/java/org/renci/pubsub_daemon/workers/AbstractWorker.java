@@ -55,7 +55,7 @@ public abstract class AbstractWorker {
 	 * @param name
 	 * @return
 	 */
-	public String getConfigProperty(String name) {
+	public static String getConfigProperty(String name) {
 		return Globals.getInstance().getConfigProperty(name);
 	}
 }

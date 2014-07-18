@@ -7,12 +7,17 @@ import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -21,6 +26,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import orca.ndl.NdlToRSpecHelper;
@@ -28,6 +34,7 @@ import orca.ndl.NdlToRSpecHelper;
 import org.renci.pubsub_daemon.Globals;
 import org.renci.pubsub_daemon.util.DbPool;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -36,18 +43,44 @@ public class GENIWorker extends AbstractWorker {
 	private static final int MS_TO_US = 1000;
 	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
 	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
+
+	//String selfRefPrefix = "http://rci-hn.exogeni.net/info/";
+	private static final String selfRefPrefix = getConfigProperty(GENI_SELFREF_PREFIX_PROPERTY);
+
 	protected static final String COMMON_PATH = "/rspec/*/";
 	protected static final String SLIVER_INFO_PATH = "geni_sliver_info";
+	protected static final String SLIVER_TYPE = "sliver_type/@name";
 	protected static final String SLIVER_SCHEMA = "http://www.gpolab.bbn.com/monitoring/schema/20140501/sliver#";
 
 	private static final String GENIDS_URL = "GENIDS.url";
 	private static final String GENIDS_USER = "GENIDS.user";
 	private static final String GENIDS_PASS = "GENIDS.password";
+	private static final String GENI_THREADPOOL_SIZE = "GENI.callback.size";
+	private static final String GENI_LINK_CALLBACK = "GENI.callback.link";
+	private static final String GENI_NODE_CALLBACK = "GENI.callback.node";
 
 	protected static DbPool conPool = null;
 	protected static Boolean flag = true;
 
 	protected String sliceUrn, sliceUuid, sliceSmName, sliceSmGuid;
+
+	// create a static pool size that gets whacked on exit
+	private static ExecutorService threadPool = null;
+	{
+		String poolSize = Globals.getInstance().getConfigProperty(GENI_THREADPOOL_SIZE);
+		Integer pSize = 10;
+		if (poolSize != null)
+			pSize = Integer.decode(poolSize);
+		threadPool = Executors.newFixedThreadPool(pSize);
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				Globals.info("Destroying the GENIWorker thread pool");
+				if (threadPool != null)
+					threadPool.shutdown();
+			}
+		});
+	}
 
 	@Override
 	public String getName() {
@@ -80,9 +113,9 @@ public class GENIWorker extends AbstractWorker {
 	private void executeAndClose(PreparedStatement pst) {
 		executeAndClose(pst, 0);
 	}
-	
+
 	private final static int SQL_RETRIES = 3;
-	
+
 	/**
 	 * Guard against transient SQL errors
 	 * @param pst
@@ -99,10 +132,13 @@ public class GENIWorker extends AbstractWorker {
 				throw new RuntimeException("Unable to insert into the database: " + e);
 		}
 	}
-	
+
 	private void insertInDb() {
-		Connection dbc = null;
 		try {
+			if (selfRefPrefix == null) {
+				Globals.error("selfref.prefix is not set; should be a url pointing to this datastore");
+			}
+
 			DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
 			Document doc = docBuilder.parse(new ByteArrayInputStream(manifests.get(DocType.RSPEC_MANIFEST).getBytes(Charset.forName("UTF-8"))));
@@ -110,23 +146,196 @@ public class GENIWorker extends AbstractWorker {
 			// normalize text representation
 			doc.getDocumentElement().normalize();
 
-
 			XPathFactory xPathfactory = XPathFactory.newInstance();
 			XPath xpath = xPathfactory.newXPath();
 			// look for nodes and links
-			XPathExpression expr = xpath.compile("/rspec/node | /rspec/link");
+			XPathExpression expr = xpath.compile("/rspec/node");
 			NodeList nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
+			insertSliverInfo(nl, xpath, SliverType.NODE);
 
-			//String selfRefPrefix = "http://rci-hn.exogeni.net/info/";
-			String selfRefPrefix = getConfigProperty(GENI_SELFREF_PREFIX_PROPERTY);
+			expr = xpath.compile("/rspec/link");
+			nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
+			insertSliverInfo(nl, xpath, SliverType.LINK);
 
-			if (selfRefPrefix == null) {
-				Globals.error("selfref.prefix is not set; should be a url pointing to this datastore");
-				selfRefPrefix = "please set selfref.prefix ";
+		} catch (SAXParseException err) {
+			throw new RuntimeException("Unable to parse document line " + err.getLineNumber () + ", uri " + err.getSystemId () + " " + err.getMessage ());
+		} catch (SAXException e) {
+			throw new RuntimeException("SAX exception: " + e);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Unable to parse the manifest: " + e);
+		}
+	}
+
+	@Override
+	public List<DocType> listDocTypes() {
+		return Arrays.asList(DocType.RSPEC_MANIFEST);
+	}
+
+	// instance sizes in monitoring table are in KB
+	private static final Integer GB_to_KB = 1024*1024;
+	private static final Integer MB_to_KB = 1024;
+
+	private static Map<String, Integer> instanceSizes;
+	{
+		Map<String, Integer> tmpMap = new HashMap<String, Integer>();
+
+		// sizes are in kb
+		tmpMap.put("raw", 48*GB_to_KB);
+		tmpMap.put("rawpc", 48*GB_to_KB);
+		tmpMap.put("exogeni-m4", 48*GB_to_KB);
+		tmpMap.put("xo.small", GB_to_KB);
+		tmpMap.put("xo.medium", GB_to_KB);
+		tmpMap.put("xo.large", 2*GB_to_KB);
+		tmpMap.put("xo.xlarge", 4*GB_to_KB);
+		tmpMap.put("m1.small", 128*MB_to_KB);
+		tmpMap.put("m1.medium", 512*MB_to_KB);
+		tmpMap.put("m1.large",GB_to_KB);
+		tmpMap.put("c1.medium", 256*MB_to_KB);
+		tmpMap.put("c1.xlarge", 2*GB_to_KB);
+
+		instanceSizes = Collections.unmodifiableMap(tmpMap);
+	}
+
+	// insert and run a callback
+	private void insertNode(Node nl, XPath xpath, String id, String urn, String href, Date ts, Connection dbc) {
+		try {
+			String nodeType = xpath.compile(SLIVER_TYPE).evaluate(nl);
+			Globals.info("Adding node " + urn + " of " + id + " to node table and callback");
+			
+			// based on type, guess the memory
+			String size;
+			if ((nodeType != null) && (instanceSizes.containsKey(nodeType))) {
+				size = instanceSizes.get(nodeType).toString();
+			} else {
+				size = "unknown";
+			}
+			// insert into table
+			if (Globals.getInstance().isDebugOn()) {
+				Globals.debug("Instance size for " + nodeType + " is " + size);
 			}
 
+			if (!conPool.poolValid()) {
+				Globals.error("Datastore parameters are not valid, not saving");
+			} else {
+				// insert into ops_node
+				Globals.debug("Inserting into ops_node");
+				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
+						"`properties$vm_server_type` ) values (?, ?, ?, ?, ?, ?, ?)");
+				pst1.setString(1, SLIVER_SCHEMA);
+				pst1.setString(2, id);
+				pst1.setString(3, href);
+				pst1.setString(4, urn);
+				pst1.setLong(5, ts.getTime()*MS_TO_US);
+				pst1.setString(6, size);
+				pst1.setString(7, nodeType);
+				executeAndClose(pst1);
+			}
+			
+			URI pUrl = null;
+			try {
+				pUrl = new URI(Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK));
+			} catch (URISyntaxException e) {
+				Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK));
+				return;
+			} catch (NullPointerException ne) {
+				;
+			}
+
+			// exec 
+			if ((pUrl != null) && ("exec".equals(pUrl.getScheme()))) {
+				// run through an executable
+
+				Globals.info("Running through node callback " + pUrl.getPath());
+				final ArrayList<String> myCommand = new ArrayList<String>();
+
+				myCommand.add(pUrl.getPath());
+				myCommand.add(nodeType);
+				myCommand.add(id);
+				myCommand.add(urn);
+				myCommand.add(href);
+
+				threadPool.submit(new Runnable() {
+					@Override
+					public void run() {
+						Globals.executeCommand(myCommand, null);
+					}
+				});
+			} else {
+				Globals.error("Node callback invalid or not specified: " + (pUrl != null ? pUrl.toString() : "null"));
+			}
+		} catch (XPathExpressionException xe) {
+			throw new RuntimeException("XPath exception: " + xe);
+		} catch(SQLException se) {
+			throw new RuntimeException("SQL exception: " + se);
+		}
+	}
+
+	// insert and run a callback
+	private void insertLink(Node nl, XPath xpath, String id, String urn, String href, Date ts, Connection dbc) {
+		try {
+			Globals.info("Adding link " + urn + " of vlan " + id + " to link table and callback");
+			if (!conPool.poolValid()) {
+				Globals.error("Datastore parameters are not valid, not saving to ops_link");
+			} else {
+				// insert into ops_link
+				Globals.debug("Inserting into ops_link");
+				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
+						" values (?, ?, ?, ?, ?)");
+				pst1.setString(1, SLIVER_SCHEMA);
+				pst1.setString(2, id);
+				pst1.setString(3, href);
+				pst1.setString(4, urn);
+				pst1.setLong(5, ts.getTime()*MS_TO_US);
+				executeAndClose(pst1);
+			}
+			URI pUrl = null;
+			try {
+				pUrl = new URI(Globals.getInstance().getConfigProperty(GENI_LINK_CALLBACK));
+			} catch (URISyntaxException e) {
+				Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK));
+				return;
+			} catch (NullPointerException ne) {
+				;
+			}
+
+			// exec 
+			if ((pUrl != null) && ("exec".equals(pUrl.getScheme()))) {
+				// run through an executable
+
+				Globals.info("Running through link callback " + pUrl.getPath());
+				final ArrayList<String> myCommand = new ArrayList<String>();
+
+				myCommand.add(pUrl.getPath());
+				myCommand.add(id);
+				myCommand.add(urn);
+				myCommand.add(href);
+
+				threadPool.submit(new Runnable() {
+					@Override
+					public void run() {
+						Globals.executeCommand(myCommand, null);
+					}
+				});
+			} else {
+				Globals.error("Link callback invalid or not specified: " + (pUrl != null ? pUrl.toString() : "null"));
+			}
+			
+		} catch(SQLException se) {
+			throw new RuntimeException("SQL exception: " + se);
+		}
+	}
+
+	private enum SliverType {NODE, LINK};
+
+	private void insertSliverInfo(NodeList nl, XPath xpath, SliverType t) {
+		// insert into datastore
+		Connection dbc = null;
+		try {
 			// get sliver information
+			Globals.debug("There are " + nl.getLength() + " elements of type " + t.name());
 			for (int i = 0; i < nl.getLength(); i++) {
+
 				String type = nl.item(i).getNodeName();
 
 				URI sliver_urn = new URI(xpath.compile("@sliver_id").evaluate(nl.item(i)));
@@ -147,10 +356,10 @@ public class GENIWorker extends AbstractWorker {
 				String agg_id = globalComp[Math.min(globalComp.length - 1, 1)];
 				String aggregate_href = selfRefPrefix + "aggregate/" + agg_id;
 				URI aggregate_urn = new URI(NdlToRSpecHelper.CM_URN_PATTERN.replaceAll("@", agg_id));
-	
+
 				if (xpath.compile(SLIVER_INFO_PATH).evaluate(nl.item(i)) != null) {
 					String creator = xpath.compile(SLIVER_INFO_PATH + "/@creator_urn").evaluate(nl.item(i));
-					
+
 					URI creator_urn = null;
 					try {
 						if ((creator != null) && (creator.split(",").length == 2))
@@ -192,59 +401,64 @@ public class GENIWorker extends AbstractWorker {
 
 					if (!conPool.poolValid()) {
 						Globals.error("Datastore parameters are not valid, not saving");
-						continue;
+					} else {
+						dbc = conPool.getDbConnection();
+						// insert into ops_sliver
+						Globals.debug("Inserting into ops_sliver");
+						PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
+								"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+						pst1.setString(1, SLIVER_SCHEMA);
+						pst1.setString(2, sliver_id);
+						pst1.setString(3, sliver_href);
+						pst1.setString(4, sliver_urn.toString());
+						pst1.setString(5, sliver_uuid);
+						pst1.setLong(6, ts.getTime()*MS_TO_US);
+						pst1.setString(7, aggregate_urn.toString());
+						pst1.setString(8, aggregate_href);
+						pst1.setString(9, sliceUrn);
+						pst1.setString(10, sliceUuid);
+						pst1.setString(11, creator_urn.toString());
+						pst1.setLong(12, createdDate.getTime()*MS_TO_US);
+						pst1.setLong(13, expiresDate.getTime()*MS_TO_US);
+						executeAndClose(pst1);
+
+						// insert into ops_aggregate_sliver
+						Globals.debug("Inserting into ops_aggregate_sliver");
+						PreparedStatement pst2 = dbc.prepareStatement("INSERT INTO `ops_aggregate_sliver` ( `id` , `aggregate_id`, `urn` , `selfRef`) values (?, ?, ?, ?)");
+						pst2.setString(1, sliver_id);
+						pst2.setString(2, agg_id);
+						pst2.setString(3, aggregate_urn.toString());
+						pst2.setString(4, aggregate_href);
+						executeAndClose(pst2);
+
+						// insert into ops_sliver_resource
+						Globals.debug("Inserting into ops_sliver_resource");
+						PreparedStatement pst3 = dbc.prepareStatement("INSERT INTO `ops_sliver_resource` ( `id` , `sliver_id` , `urn` , `selfRef` ) values (?, ?, ?, ?)");
+						pst3.setString(1, resource);
+						pst3.setString(2, sliver_id);
+						pst3.setString(3, resource_urn);
+						pst3.setString(4, resource_href);
+						executeAndClose(pst3);
 					}
 
-					// insert into datastore
-					dbc = conPool.getDbConnection();
-
-					// insert into ops_sliver
-					Globals.debug("Inserting into ops_sliver");
-					PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
-							"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-					pst1.setString(1, SLIVER_SCHEMA);
-					pst1.setString(2, sliver_id);
-					pst1.setString(3,  sliver_href);
-					pst1.setString(4, sliver_urn.toString());
-					pst1.setString(5, sliver_uuid);
-					pst1.setLong(6, ts.getTime()*MS_TO_US);
-					pst1.setString(7, aggregate_urn.toString());
-					pst1.setString(8, aggregate_href);
-					pst1.setString(9, sliceUrn);
-					pst1.setString(10, sliceUuid);
-					pst1.setString(11, creator_urn.toString());
-					pst1.setLong(12, createdDate.getTime()*MS_TO_US);
-					pst1.setLong(13, expiresDate.getTime()*MS_TO_US);
-					executeAndClose(pst1);
-
-					// insert into ops_aggregate_sliver
-					Globals.debug("Inserting into ops_aggregate_sliver");
-					PreparedStatement pst2 = dbc.prepareStatement("INSERT INTO `ops_aggregate_sliver` ( `id` , `aggregate_id`, `urn` , `selfRef`) values (?, ?, ?, ?)");
-					pst2.setString(1, sliver_id);
-					pst2.setString(2, agg_id);
-					pst2.setString(3, aggregate_urn.toString());
-					pst2.setString(4, aggregate_href);
-					executeAndClose(pst2);
-
-					// insert into ops_sliver_resource
-					Globals.debug("Inserting into ops_sliver_resource");
-					PreparedStatement pst3 = dbc.prepareStatement("INSERT INTO `ops_sliver_resource` ( `id` , `sliver_id` , `urn` , `selfRef` ) values (?, ?, ?, ?)");
-					pst3.setString(1, resource);
-					pst3.setString(2, sliver_id);
-					pst3.setString(3, resource_urn.toString());
-					pst3.setString(4, resource_href);
-					executeAndClose(pst3);
-				}
+					switch(t) {
+					case NODE:
+						insertNode(nl.item(i), xpath, resource, resource_urn, resource_href, ts, dbc);
+						break;
+					case LINK:
+						insertLink(nl.item(i), xpath, resource, resource_urn, resource_href, ts, dbc);
+						break;
+					}
+				} else 
+					Globals.error("Unable to find sliver_info in node " + nl.item(i));
 			}
-		} catch (SAXParseException err) {
-			throw new RuntimeException("Unable to parse document line " + err.getLineNumber () + ", uri " + err.getSystemId () + " " + err.getMessage ());
-		} catch (SAXException e) {
-			throw new RuntimeException("SAX exception: " + e);
-		} catch (SQLException e) {
-			throw new RuntimeException("Unable to insert into the database: " + e);
-		} catch (Exception e) {
+		} catch(SQLException se) {
+			throw new RuntimeException("Unable to insert into the database: " + se);
+		} catch(XPathExpressionException xe) {
+			throw new RuntimeException("Unable to parse XML manifest: " + xe);
+		} catch(Exception e) {
 			e.printStackTrace();
-			throw new RuntimeException("Unable to parse the manifest: " + e);
+			throw new RuntimeException("Unable to parse manifest: " + e);
 		} finally {
 			if (dbc != null)
 				try {
@@ -255,11 +469,6 @@ public class GENIWorker extends AbstractWorker {
 		}
 	}
 
-	@Override
-	public List<DocType> listDocTypes() {
-		return Arrays.asList(DocType.RSPEC_MANIFEST);
-	}
-	
 	/**
 	 * Convert a DN into a URN (mostly for BEN credentials)
 	 * urn:publicid:IDN+ch.geni.net+user+ekishore
