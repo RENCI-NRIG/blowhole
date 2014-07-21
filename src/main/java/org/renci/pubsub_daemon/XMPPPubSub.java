@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -53,7 +54,6 @@ public class XMPPPubSub implements CallbackHandler{
 	int port;
 	PubSubManager manager;
 	String resource = PUBSUB_PUBLISHER_RESOURCE;
-	Random generator = new Random(9836402L);
 
 	private boolean usecertificate = false;
 	private String keystorepath, keystoretype, truststorepath, truststorepass;
@@ -209,9 +209,9 @@ public class XMPPPubSub implements CallbackHandler{
 				Thread.sleep(3 * 1000); // Something about timing in the forums
 
 				// Log into the server with random resource
-				int rand = generator.nextInt();
+				String rand = UUID.randomUUID().toString();
 				xmppCon.login(user, password, resource + "-" + rand);
-				logger.info("Logged " + user + "@" + server + " in.");
+				logger.info("Logged " + user + "@" + server + " in using resource " + resource + "-" + rand);
 
 				// create pubsub manager
 				manager = new PubSubManager(xmppCon, PUBSUB_SERVER_PREFIX + server);

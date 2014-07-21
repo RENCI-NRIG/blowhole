@@ -1,6 +1,9 @@
 package org.renci.pubsub_daemon.workers;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -16,6 +19,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -49,6 +53,7 @@ public class GENIWorker extends AbstractWorker {
 
 	protected static final String COMMON_PATH = "/rspec/*/";
 	protected static final String SLIVER_INFO_PATH = "geni_sliver_info";
+	protected static final String COMPONENT_MANAGER = "component_manager";
 	protected static final String SLIVER_TYPE = "sliver_type/@name";
 	protected static final String SLIVER_SCHEMA = "http://www.gpolab.bbn.com/monitoring/schema/20140501/sliver#";
 
@@ -58,6 +63,7 @@ public class GENIWorker extends AbstractWorker {
 	private static final String GENI_THREADPOOL_SIZE = "GENI.callback.size";
 	private static final String GENI_LINK_CALLBACK = "GENI.callback.link";
 	private static final String GENI_NODE_CALLBACK = "GENI.callback.node";
+	private static final String GENI_SITE_PREFIX = "GENI.site.prefix";
 
 	protected static DbPool conPool = null;
 	protected static Boolean flag = true;
@@ -234,7 +240,10 @@ public class GENIWorker extends AbstractWorker {
 			
 			URI pUrl = null;
 			try {
-				pUrl = new URI(Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK));
+				String tmpProp = Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK);
+				if (tmpProp != null)
+					tmpProp = tmpProp.trim();
+				pUrl = new URI(tmpProp);
 			} catch (URISyntaxException e) {
 				Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK));
 				return;
@@ -291,9 +300,12 @@ public class GENIWorker extends AbstractWorker {
 			}
 			URI pUrl = null;
 			try {
-				pUrl = new URI(Globals.getInstance().getConfigProperty(GENI_LINK_CALLBACK));
+				String tmpProp = Globals.getInstance().getConfigProperty(GENI_LINK_CALLBACK);
+				if (tmpProp != null)
+					tmpProp = tmpProp.trim();
+				pUrl = new URI(tmpProp);
 			} catch (URISyntaxException e) {
-				Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getConfigProperty(GENI_NODE_CALLBACK));
+				Globals.error("Error publishing to invalid URL: " + Globals.getInstance().getConfigProperty(GENI_LINK_CALLBACK));
 				return;
 			} catch (NullPointerException ne) {
 				;
@@ -334,6 +346,11 @@ public class GENIWorker extends AbstractWorker {
 		try {
 			// get sliver information
 			Globals.debug("There are " + nl.getLength() + " elements of type " + t.name());
+			String shortName = Globals.getInstance().getConfigProperty(GENI_SITE_PREFIX);
+			if (shortName == null) {
+				Globals.warn("No short site prefix GENI.site.prefix specified in the configuration, no slivers will be inserted in the databse");
+				return;
+			}
 			for (int i = 0; i < nl.getLength(); i++) {
 
 				String type = nl.item(i).getNodeName();
@@ -346,9 +363,35 @@ public class GENIWorker extends AbstractWorker {
 
 				Date ts = new Date();
 
-				// we get it from sliver_id because it is consistent for nodes and links
-				// links don't have a single component manager id, so its a pain. /ib 05/22/14
-				String[] siteId = sliver_urn.toString().split("\\+");
+				// this works for nodes.
+				NodeList cmAttr = (NodeList)xpath.compile("@component_manager_id").evaluate(nl.item(i), XPathConstants.NODESET);
+				String cm = null;
+				
+				if (cmAttr.getLength() > 0) {
+					// Get component manager name from the attribute
+					cm = xpath.compile("@component_manager_id").evaluate(nl.item(i));
+					if (!cm.equalsIgnoreCase("urn:publicid:IDN+exogeni.net:" + shortName + "vmsite+authority+am")) {
+						cm = null;
+					}
+				} else {
+					// iterate over component managers and find one we're looking for (if there is one)
+					NodeList cmElem = (NodeList)xpath.compile(COMPONENT_MANAGER).evaluate(nl.item(i), XPathConstants.NODESET);
+					for (int jj = 0; jj < cmElem.getLength(); jj++) {
+						String tcm = xpath.compile("@name").evaluate(cmElem.item(jj));
+						if (tcm.equalsIgnoreCase("urn:publicid:IDN+exogeni.net:" + shortName + "vmsite+authority+am") || 
+								tcm.equalsIgnoreCase("urn:publicid:IDN+exogeni.net:" + shortName + "Net+authority+am")) {
+							cm = tcm;
+							break;
+						}
+					}
+					
+				}
+				
+				if (cm == null) {
+					Globals.warn("Unable to determine component manager for " + sliver_id + " skipping reporting");
+					continue;
+				}
+				String[] siteId = cm.split("\\+");
 				// fully qualified aggregate id (e.g. exogeni.net:bbnvmsite)
 				String full_agg_id = siteId[Math.min(siteId.length - 1, 1)];
 				String[] globalComp = siteId[Math.min(siteId.length - 1 , 1)].split(":");
@@ -356,8 +399,9 @@ public class GENIWorker extends AbstractWorker {
 				String agg_id = globalComp[Math.min(globalComp.length - 1, 1)];
 				String aggregate_href = selfRefPrefix + "aggregate/" + agg_id;
 				URI aggregate_urn = new URI(NdlToRSpecHelper.CM_URN_PATTERN.replaceAll("@", agg_id));
-
-				if (xpath.compile(SLIVER_INFO_PATH).evaluate(nl.item(i)) != null) {
+				
+				// find geni_sliver_info, if available
+				if (((NodeList)xpath.compile(SLIVER_INFO_PATH).evaluate(nl.item(i), XPathConstants.NODESET)).getLength() > 0) {
 					String creator = xpath.compile(SLIVER_INFO_PATH + "/@creator_urn").evaluate(nl.item(i));
 
 					URI creator_urn = null;
@@ -365,7 +409,10 @@ public class GENIWorker extends AbstractWorker {
 						if ((creator != null) && (creator.split(",").length == 2))
 							creator_urn = new URI(creator.split(",")[1].trim());
 						else { 
-							creator_urn = new URI(dnToUrn(creator));
+							if ((creator != null) && (creator.length() >0)) 
+								creator_urn = new URI(dnToUrn(creator));
+							else
+								creator_urn = new URI("urn:publicid:IDN+unknownuser");
 						}
 					} catch (URISyntaxException ue) {
 						Globals.error("Unable to parse creator string " + creator + ", replacing with dummy value");
@@ -387,7 +434,7 @@ public class GENIWorker extends AbstractWorker {
 					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", resource);
 					String resource_href = selfRefPrefix + "resource/" + resource;
 
-					if (Globals.getInstance().isDebugOn()) {
+					if (!Globals.getInstance().isDebugOn()) {
 						Globals.debug("Slice: " + sliceUrn + " uuid: " + sliceUuid);
 						Globals.debug("Sliver: " + type + " " + sliver_id + " " + sliver_uuid + " " + sliver_href);
 						Globals.debug("URN of " + type + ": "+ sliver_urn);
@@ -500,6 +547,22 @@ public class GENIWorker extends AbstractWorker {
 			}
 		} else {
 			throw new RuntimeException("String is empty");
+		}
+	}
+	
+	public static void main(String[] argv) {
+		GENIWorker gw = new GENIWorker();
+		
+		try {
+			InputStream source = new FileInputStream(new File("/Users/ibaldin/Desktop/two-node-manifest-intra.xml"));
+			String text = new Scanner( source ).useDelimiter("\\A").next();
+
+			gw.manifests = new HashMap<DocType, String>();
+			gw.manifests.put(DocType.RSPEC_MANIFEST, text);
+			gw.processManifest(gw.manifests, "URN:slice", "slice-guid", "slice-sm", "slice-sm-guid");
+		} catch(Exception e) {
+			System.err.println("Something went bad: " + e);
+			e.printStackTrace();
 		}
 	}
 }

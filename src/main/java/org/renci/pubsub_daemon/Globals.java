@@ -155,18 +155,26 @@ public class Globals {
 	public static void info(Object s) {
 		if (getInstance().getLogger() != null)
 			getInstance().getLogger().info(s);
+		else
+			System.out.println(s);
 	}
 	public static void warn(Object s) {
 		if (getInstance().getLogger() != null)
 			getInstance().getLogger().warn(s);
+		else
+			System.err.println(s);
 	}
 	public static void debug(Object s) {
 		if (getInstance().getLogger() != null)
 			getInstance().getLogger().debug(s);
+		else
+			System.out.println(s);
 	}
 	public static void error(Object s) {
 		if (getInstance().getLogger() != null)
 			getInstance().getLogger().error(s);
+		else
+			System.err.println(s);
 	}
 	
 	public SliceListEventListener getSliceListener() {
@@ -257,8 +265,15 @@ public class Globals {
 		configProperties = p;
 	}
 	
+	/**
+	 * Return a configuration property or null
+	 * @param name
+	 * @return
+	 */
 	public String getConfigProperty(String name) {
-		return configProperties.getProperty(name);
+		if (configProperties != null)
+			return configProperties.getProperty(name);
+		return null;
 	}
 	
     public static String readFileToString(String path) {
