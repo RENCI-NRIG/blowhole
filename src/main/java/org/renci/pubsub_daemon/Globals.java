@@ -271,8 +271,11 @@ public class Globals {
 	 * @return
 	 */
 	public String getConfigProperty(String name) {
-		if (configProperties != null)
-			return configProperties.getProperty(name);
+		if (configProperties != null) {
+			String ret = configProperties.getProperty(name);
+			if (ret != null)
+				return ret.trim();
+		}
 		return null;
 	}
 	
