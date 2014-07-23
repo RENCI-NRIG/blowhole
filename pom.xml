@@ -12,6 +12,7 @@
 			<url>http://ci-dev.renci.org/nexus/content/repositories/geni-orca-snapshot/</url>
 			<snapshots>
                 		<enabled>true</enabled>
+                		<updatePolicy>always</updatePolicy>
             		</snapshots>
 		</repository>
 		<repository>
