@@ -204,7 +204,7 @@ public class GENIWorker extends AbstractWorker {
 	}
 
 	// insert and run a callback
-	private void insertNode(Node nl, XPath xpath, String id, String urn, String href, Date ts, Connection dbc) {
+	private void insertNode(Node nl, XPath xpath, String guid, String id, String urn, String href, Date ts, Connection dbc) {
 		try {
 			String nodeType = xpath.compile(SLIVER_TYPE).evaluate(nl);
 			Globals.info("Adding node " + urn + " of " + id + " to node table and callback");
@@ -214,7 +214,8 @@ public class GENIWorker extends AbstractWorker {
 			if ((nodeType != null) && (instanceSizes.containsKey(nodeType))) {
 				size = instanceSizes.get(nodeType).toString();
 			} else {
-				size = "unknown";
+				Globals.warn("Unable to dermine instance size for " + nodeType + ", setting to 0");
+				size = "0";
 			}
 			// insert into table
 			if (Globals.getInstance().isDebugOn()) {
@@ -229,7 +230,7 @@ public class GENIWorker extends AbstractWorker {
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
 						"`properties$vm_server_type` ) values (?, ?, ?, ?, ?, ?, ?)");
 				pst1.setString(1, SLIVER_SCHEMA);
-				pst1.setString(2, id);
+				pst1.setString(2, guid + ": " + id);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
 				pst1.setLong(5, ts.getTime()*MS_TO_US);
@@ -259,6 +260,8 @@ public class GENIWorker extends AbstractWorker {
 				final ArrayList<String> myCommand = new ArrayList<String>();
 
 				myCommand.add(pUrl.getPath());
+				myCommand.add(sliceUuid);
+				myCommand.add(guid);
 				myCommand.add(nodeType);
 				myCommand.add(id);
 				myCommand.add(urn);
@@ -281,7 +284,7 @@ public class GENIWorker extends AbstractWorker {
 	}
 
 	// insert and run a callback
-	private void insertLink(Node nl, XPath xpath, String id, String urn, String href, Date ts, Connection dbc) {
+	private void insertLink(Node nl, XPath xpath, String guid, String id, String urn, String href, Date ts, Connection dbc) {
 		try {
 			Globals.info("Adding link " + urn + " of vlan " + id + " to link table and callback");
 			if (!conPool.poolValid()) {
@@ -292,7 +295,7 @@ public class GENIWorker extends AbstractWorker {
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
 						" values (?, ?, ?, ?, ?)");
 				pst1.setString(1, SLIVER_SCHEMA);
-				pst1.setString(2, id);
+				pst1.setString(2, guid + ":" + id);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
 				pst1.setLong(5, ts.getTime()*MS_TO_US);
@@ -319,6 +322,8 @@ public class GENIWorker extends AbstractWorker {
 				final ArrayList<String> myCommand = new ArrayList<String>();
 
 				myCommand.add(pUrl.getPath());
+				myCommand.add(sliceUuid);
+				myCommand.add(guid);
 				myCommand.add(id);
 				myCommand.add(urn);
 				myCommand.add(href);
@@ -384,7 +389,6 @@ public class GENIWorker extends AbstractWorker {
 							break;
 						}
 					}
-					
 				}
 				
 				if (cm == null) {
@@ -434,7 +438,7 @@ public class GENIWorker extends AbstractWorker {
 					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", resource);
 					String resource_href = selfRefPrefix + "resource/" + resource;
 
-					if (!Globals.getInstance().isDebugOn()) {
+					if (Globals.getInstance().isDebugOn()) {
 						Globals.debug("Slice: " + sliceUrn + " uuid: " + sliceUuid);
 						Globals.debug("Sliver: " + type + " " + sliver_id + " " + sliver_uuid + " " + sliver_href);
 						Globals.debug("URN of " + type + ": "+ sliver_urn);
@@ -490,10 +494,10 @@ public class GENIWorker extends AbstractWorker {
 
 					switch(t) {
 					case NODE:
-						insertNode(nl.item(i), xpath, resource, resource_urn, resource_href, ts, dbc);
+						insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, resource_href, ts, dbc);
 						break;
 					case LINK:
-						insertLink(nl.item(i), xpath, resource, resource_urn, resource_href, ts, dbc);
+						insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, resource_href, ts, dbc);
 						break;
 					}
 				} else 
