@@ -26,6 +26,8 @@ import javax.xml.xpath.XPath;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.jivesoftware.smackx.pubsub.Subscription;
+import org.renci.xmpp_pubsub.IPubSubReconnectCallback;
+import org.renci.xmpp_pubsub.XMPPPubSub;
 
 
 /**

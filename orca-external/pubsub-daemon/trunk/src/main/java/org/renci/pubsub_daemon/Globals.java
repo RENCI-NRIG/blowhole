@@ -22,6 +22,7 @@ import orca.ndl_conversion.UniversalNDLConverter;
 import org.apache.log4j.Logger;
 import org.renci.pubsub_daemon.ManifestSubscriber.SubscriptionPair;
 import org.renci.pubsub_daemon.workers.AbstractWorker;
+import org.renci.xmpp_pubsub.XMPPPubSub;
 
 /**
  * global settings singleton
