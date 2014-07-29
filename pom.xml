@@ -161,6 +161,7 @@
 			<artifactId>log4j</artifactId>
 			<version>1.2.17</version>
 		</dependency>
+		<!--  
 		<dependency>
 			<groupId>org.jivesoftware.smack</groupId>
 			<artifactId>smack-pubsub</artifactId>
@@ -170,6 +171,12 @@
 			<groupId>org.jivesoftware.smackx</groupId>
 			<artifactId>smackx-pubsub</artifactId>
 			<version>3.4.1</version>
+		</dependency>
+		-->
+		<dependency>
+			<groupId>org.renci</groupId>
+			<artifactId>xmpp-pubsub</artifactId>
+			<version>1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-codec</groupId>
