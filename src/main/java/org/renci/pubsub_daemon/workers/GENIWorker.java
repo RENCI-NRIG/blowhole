@@ -44,6 +44,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 public class GENIWorker extends AbstractWorker {
+	private static final String URN_UNKNOWN_USER = "urn:publicid:IDN+unknownuser";
 	private static final int MS_TO_US = 1000;
 	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
 	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
@@ -166,11 +167,11 @@ public class GENIWorker extends AbstractWorker {
 			// look for nodes and links
 			XPathExpression expr = xpath.compile("/rspec/node");
 			NodeList nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
-			insertSliverInfo(nl, xpath, SliverType.NODE);
+			insertSliverInfo(nl, xpath, SliverType.node);
 
 			expr = xpath.compile("/rspec/link");
 			nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
-			insertSliverInfo(nl, xpath, SliverType.LINK);
+			insertSliverInfo(nl, xpath, SliverType.link);
 
 		} catch (SAXParseException err) {
 			throw new RuntimeException("Unable to parse document line " + err.getLineNumber () + ", uri " + err.getSystemId () + " " + err.getMessage ());
@@ -352,7 +353,7 @@ public class GENIWorker extends AbstractWorker {
 		}
 	}
 
-	private enum SliverType {NODE, LINK};
+	private enum SliverType {node, link};
 
 	private void insertSliverInfo(NodeList nl, XPath xpath, SliverType t) {
 		// insert into datastore
@@ -373,6 +374,9 @@ public class GENIWorker extends AbstractWorker {
 
 				String sliver_id = sliver_urn.toString().replaceFirst("urn:publicid:IDN\\+", "").replaceAll("[+:]", "_");
 				String sliver_href = selfRefPrefix + "sliver/" + sliver_id;
+				// we want to make node or link self refs unique, and ORCA sliver id has a guid in
+				// it, so at least some peace of mind
+				String nodeLink_href = selfRefPrefix + t.name() + "/" + sliver_id;
 				//String sliver_uuid = sliver_urn.toString().replaceFirst("urn.+sliver\\+", "").split(":")[0];
 				String sliver_uuid = wmp.getReservationId(sliver_urn.toString());
 
@@ -426,11 +430,11 @@ public class GENIWorker extends AbstractWorker {
 							if ((creator != null) && (creator.length() >0)) 
 								creator_urn = new URI(dnToUrn(creator));
 							else
-								creator_urn = new URI("urn:publicid:IDN+unknownuser");
+								creator_urn = new URI(URN_UNKNOWN_USER);
 						}
 					} catch (URISyntaxException ue) {
 						Globals.error("Unable to parse creator string " + creator + ", replacing with dummy value");
-						creator_urn = new URI("urn:publicid:IDN+unknownuser");
+						creator_urn = new URI(URN_UNKNOWN_USER);
 					}
 
 					String created = xpath.compile(SLIVER_INFO_PATH + "/@start_time").evaluate(nl.item(i));
@@ -488,8 +492,8 @@ public class GENIWorker extends AbstractWorker {
 						PreparedStatement pst2 = dbc.prepareStatement("INSERT INTO `ops_aggregate_sliver` ( `id` , `aggregate_id`, `urn` , `selfRef`) values (?, ?, ?, ?)");
 						pst2.setString(1, sliver_id);
 						pst2.setString(2, agg_id);
-						pst2.setString(3, aggregate_urn.toString());
-						pst2.setString(4, aggregate_href);
+						pst2.setString(3, sliver_urn.toString());
+						pst2.setString(4, sliver_href);
 						executeAndClose(pst2);
 
 						// insert into ops_sliver_resource
@@ -498,16 +502,16 @@ public class GENIWorker extends AbstractWorker {
 						pst3.setString(1, resource);
 						pst3.setString(2, sliver_id);
 						pst3.setString(3, resource_urn);
-						pst3.setString(4, resource_href);
+						pst3.setString(4, nodeLink_href);
 						executeAndClose(pst3);
 					}
 
 					switch(t) {
-					case NODE:
-						insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, resource_href, ts, dbc);
+					case node:
+						insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 						break;
-					case LINK:
-						insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, resource_href, ts, dbc);
+					case link:
+						insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 						break;
 					}
 				} else 
