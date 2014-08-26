@@ -65,6 +65,7 @@ public class GENIWorker extends AbstractWorker {
 	private static final String GENI_NODE_CALLBACK = "GENI.callback.node";
 	private static final String GENI_SITE_PREFIX = "GENI.site.prefix";
 
+	protected GENIWorkerManifestParser wmp = null;
 	protected static DbPool conPool = null;
 	protected static Boolean flag = true;
 
@@ -113,6 +114,14 @@ public class GENIWorker extends AbstractWorker {
 		this.sliceSmName = sliceSmName;
 		this.sliceSmGuid = sliceSmGuid;
 
+		// parse NDL manifest first
+		wmp = new GENIWorkerManifestParser(sliceUrn);
+		try {
+			wmp.parse(manifests.get(DocType.NDL_MANIFEST));
+		} catch (Exception e) {
+			throw new RuntimeException("Unable to parse NDL manifest: " + e.getMessage());
+		}
+		
 		insertInDb();
 	}
 
@@ -175,7 +184,7 @@ public class GENIWorker extends AbstractWorker {
 
 	@Override
 	public List<DocType> listDocTypes() {
-		return Arrays.asList(DocType.RSPEC_MANIFEST);
+		return Arrays.asList(DocType.NDL_MANIFEST, DocType.RSPEC_MANIFEST);
 	}
 
 	// instance sizes in monitoring table are in KB
@@ -364,7 +373,8 @@ public class GENIWorker extends AbstractWorker {
 
 				String sliver_id = sliver_urn.toString().replaceFirst("urn:publicid:IDN\\+", "").replaceAll("[+:]", "_");
 				String sliver_href = selfRefPrefix + "sliver/" + sliver_id;
-				String sliver_uuid = sliver_urn.toString().replaceFirst("urn.+sliver\\+", "").split(":")[0];
+				//String sliver_uuid = sliver_urn.toString().replaceFirst("urn.+sliver\\+", "").split(":")[0];
+				String sliver_uuid = wmp.getReservationId(sliver_urn.toString());
 
 				Date ts = new Date();
 
@@ -558,11 +568,17 @@ public class GENIWorker extends AbstractWorker {
 		GENIWorker gw = new GENIWorker();
 		
 		try {
-			InputStream source = new FileInputStream(new File("/Users/ibaldin/Desktop/two-node-manifest-intra.xml"));
-			String text = new Scanner( source ).useDelimiter("\\A").next();
-
 			gw.manifests = new HashMap<DocType, String>();
+
+			InputStream source = new FileInputStream(new File("/Users/ibaldin/Desktop/test.xml"));
+			String text = new Scanner( source ).useDelimiter("\\A").next();
 			gw.manifests.put(DocType.RSPEC_MANIFEST, text);
+			
+			source.close();
+			source = new FileInputStream(new File("/Users/ibaldin/Desktop/test.rdf"));
+			text = new Scanner( source ).useDelimiter("\\A").next();
+			gw.manifests.put(DocType.NDL_MANIFEST, text);
+			
 			gw.processManifest(gw.manifests, "URN:slice", "slice-guid", "slice-sm", "slice-sm-guid");
 		} catch(Exception e) {
 			System.err.println("Something went bad: " + e);
