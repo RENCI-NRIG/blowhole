@@ -44,6 +44,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 public class GENIWorker extends AbstractWorker {
+	private static final String VTYPE_KVM = "kvm";
+	private static final String NTYPE_SERVER = "server";
+	private static final String NTYPE_VM = "vm";
 	private static final String URN_UNKNOWN_USER = "urn:publicid:IDN+unknownuser";
 	private static final int MS_TO_US = 1000;
 	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
@@ -192,25 +195,25 @@ public class GENIWorker extends AbstractWorker {
 	private static final Integer GB_to_KB = 1024*1024;
 	private static final Integer MB_to_KB = 1024;
 
-	private static Map<String, Integer> instanceSizes;
+	private static Map<String, String[]> instanceDetails;
 	{
-		Map<String, Integer> tmpMap = new HashMap<String, Integer>();
+		Map<String, String[]> tmpMap = new HashMap<String, String[]>();
 
 		// sizes are in kb
-		tmpMap.put("raw", 48*GB_to_KB);
-		tmpMap.put("rawpc", 48*GB_to_KB);
-		tmpMap.put("exogeni-m4", 48*GB_to_KB);
-		tmpMap.put("xo.small", GB_to_KB);
-		tmpMap.put("xo.medium", GB_to_KB);
-		tmpMap.put("xo.large", 2*GB_to_KB);
-		tmpMap.put("xo.xlarge", 4*GB_to_KB);
-		tmpMap.put("m1.small", 128*MB_to_KB);
-		tmpMap.put("m1.medium", 512*MB_to_KB);
-		tmpMap.put("m1.large",GB_to_KB);
-		tmpMap.put("c1.medium", 256*MB_to_KB);
-		tmpMap.put("c1.xlarge", 2*GB_to_KB);
+		tmpMap.put("raw", new String[] { "" + 48*GB_to_KB, NTYPE_SERVER} );
+		tmpMap.put("rawpc", new String[] { "" + 48*GB_to_KB, NTYPE_SERVER});
+		tmpMap.put("exogeni-m4", new String[] { "" + 48*GB_to_KB, NTYPE_SERVER} );
+		tmpMap.put("xo.small", new String[] { "" + GB_to_KB, NTYPE_VM });
+		tmpMap.put("xo.medium", new String[] { "" + GB_to_KB, NTYPE_VM });
+		tmpMap.put("xo.large", new String[] { "" + 2*GB_to_KB, NTYPE_VM });
+		tmpMap.put("xo.xlarge", new String[] { "" + 4*GB_to_KB, NTYPE_VM });
+		tmpMap.put("m1.small", new String[] {"" + 128*MB_to_KB, NTYPE_VM });
+		tmpMap.put("m1.medium", new String[] { "" + 512*MB_to_KB, NTYPE_VM });
+		tmpMap.put("m1.large", new String[] { "" + GB_to_KB, NTYPE_VM });
+		tmpMap.put("c1.medium", new String[] {"" + 256*MB_to_KB, NTYPE_VM });
+		tmpMap.put("c1.xlarge", new String[] {"" + 2*GB_to_KB, NTYPE_VM });
 
-		instanceSizes = Collections.unmodifiableMap(tmpMap);
+		instanceDetails = Collections.unmodifiableMap(tmpMap);
 	}
 
 	// insert and run a callback
@@ -221,11 +224,17 @@ public class GENIWorker extends AbstractWorker {
 			
 			// based on type, guess the memory
 			String size;
-			if ((nodeType != null) && (instanceSizes.containsKey(nodeType))) {
-				size = instanceSizes.get(nodeType).toString();
+			String nType;
+			String vType = null;
+			if ((nodeType != null) && (instanceDetails.containsKey(nodeType))) {
+				size = instanceDetails.get(nodeType)[0];
+				nType = instanceDetails.get(nodeType)[1];
+				if (NTYPE_VM.equals(nType))
+					vType = VTYPE_KVM;
 			} else {
 				Globals.warn("Unable to dermine instance size for " + nodeType + ", setting to 0");
 				size = "0";
+				nType = NTYPE_VM;
 			}
 			// insert into table
 			if (Globals.getInstance().isDebugOn()) {
@@ -238,14 +247,15 @@ public class GENIWorker extends AbstractWorker {
 				// insert into ops_node
 				Globals.debug("Inserting into ops_node");
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
-						"`properties$vm_server_type` ) values (?, ?, ?, ?, ?, ?, ?)");
+						"`node_type`, `virtualization_type` ) values (?, ?, ?, ?, ?, ?, ?, ?)");
 				pst1.setString(1, SLIVER_SCHEMA);
 				pst1.setString(2, guid + ": " + id);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
 				pst1.setLong(5, ts.getTime()*MS_TO_US);
 				pst1.setString(6, size);
-				pst1.setString(7, nodeType);
+				pst1.setString(7, nType);
+				pst1.setString(8, vType);
 				executeAndClose(pst1);
 			}
 			
@@ -468,10 +478,23 @@ public class GENIWorker extends AbstractWorker {
 						Globals.error("Datastore parameters are not valid, not saving");
 					} else {
 						dbc = conPool.getDbConnection();
+						
+						String query = null;
+						switch(t) {
+						case node:
+							insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
+							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
+									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `node_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+							break;
+						case link:
+							insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
+							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
+									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `link_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+							break;
+						}
 						// insert into ops_sliver
 						Globals.debug("Inserting into ops_sliver");
-						PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
-								"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+						PreparedStatement pst1 = dbc.prepareStatement(query);
 						pst1.setString(1, SLIVER_SCHEMA);
 						pst1.setString(2, sliver_id);
 						pst1.setString(3, sliver_href);
@@ -485,6 +508,7 @@ public class GENIWorker extends AbstractWorker {
 						pst1.setString(11, creator_urn.toString());
 						pst1.setLong(12, createdDate.getTime()*MS_TO_US);
 						pst1.setLong(13, expiresDate.getTime()*MS_TO_US);
+						pst1.setString(14, resource);
 						executeAndClose(pst1);
 
 						// insert into ops_aggregate_sliver
@@ -496,23 +520,14 @@ public class GENIWorker extends AbstractWorker {
 						pst2.setString(4, sliver_href);
 						executeAndClose(pst2);
 
-						// insert into ops_sliver_resource
-						Globals.debug("Inserting into ops_sliver_resource");
-						PreparedStatement pst3 = dbc.prepareStatement("INSERT INTO `ops_sliver_resource` ( `id` , `sliver_id` , `urn` , `selfRef` ) values (?, ?, ?, ?)");
-						pst3.setString(1, resource);
-						pst3.setString(2, sliver_id);
-						pst3.setString(3, resource_urn);
-						pst3.setString(4, nodeLink_href);
-						executeAndClose(pst3);
-					}
-
-					switch(t) {
-					case node:
-						insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
-						break;
-					case link:
-						insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
-						break;
+//						// insert into ops_sliver_resource
+//						Globals.debug("Inserting into ops_sliver_resource");
+//						PreparedStatement pst3 = dbc.prepareStatement("INSERT INTO `ops_sliver_resource` ( `id` , `sliver_id` , `urn` , `selfRef` ) values (?, ?, ?, ?)");
+//						pst3.setString(1, resource);
+//						pst3.setString(2, sliver_id);
+//						pst3.setString(3, resource_urn);
+//						pst3.setString(4, nodeLink_href);
+//						executeAndClose(pst3);
 					}
 				} else 
 					Globals.error("Unable to find sliver_info in node " + nl.item(i));
