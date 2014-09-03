@@ -1,7 +1,7 @@
 Summary: Blowhole - An RSpec manifest spouter
 Name: blowhole
 Version: 0.2
-Release: 14
+Release: 15
 BuildRoot: %{_builddir}/%{name}-root
 Source0: blowhole-0.2.tgz
 Group: Applications/Communications
@@ -95,5 +95,7 @@ ln -s %{homedir}/bin/blowholed /etc/init.d
 %doc LICENSE README xoschema.sql
 
 %changelog
+*Wed Sep 03 2014 Jonathan Mills <jonmills@renci.org> - 0.2-14
+- Updated to support db schema of ops-monitoring 2.0
 *Wed Aug 27 2014 Victor J. Orlikowski <vjo@cs.duke.edu>
 - Checked into subversion
