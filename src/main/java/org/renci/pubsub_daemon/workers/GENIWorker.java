@@ -249,7 +249,7 @@ public class GENIWorker extends AbstractWorker {
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
 						"`node_type`, `virtualization_type` ) values (?, ?, ?, ?, ?, ?, ?, ?)");
 				pst1.setString(1, SLIVER_SCHEMA);
-				pst1.setString(2, guid + ": " + id);
+				pst1.setString(2, guid + ":" + id);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
 				pst1.setLong(5, ts.getTime()*MS_TO_US);
@@ -372,7 +372,7 @@ public class GENIWorker extends AbstractWorker {
 			// get sliver information
 			Globals.debug("There are " + nl.getLength() + " elements of type " + t.name());
 			String shortName = Globals.getInstance().getConfigProperty(GENI_SITE_PREFIX);
-			if (shortName == null) {
+			if ((shortName == null) || (shortName.length() == 0)) {
 				Globals.warn("No short site prefix GENI.site.prefix specified in the configuration, no slivers will be inserted in the databse");
 				return;
 			}
@@ -508,7 +508,7 @@ public class GENIWorker extends AbstractWorker {
 						pst1.setString(11, creator_urn.toString());
 						pst1.setLong(12, createdDate.getTime()*MS_TO_US);
 						pst1.setLong(13, expiresDate.getTime()*MS_TO_US);
-						pst1.setString(14, resource);
+						pst1.setString(14, sliver_uuid + ":" + resource);
 						executeAndClose(pst1);
 
 						// insert into ops_aggregate_sliver
