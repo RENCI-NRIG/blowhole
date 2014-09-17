@@ -50,6 +50,7 @@ public class GENIWorker extends AbstractWorker {
 	private static final String URN_UNKNOWN_USER = "urn:publicid:IDN+unknownuser";
 	private static final int MS_TO_US = 1000;
 	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
+	private static final String GENI_SCHEMA_PREFIX_PROPERTY = "GENI.schema.prefix";
 	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
 
 	//String selfRefPrefix = "http://rci-hn.exogeni.net/info/";
@@ -59,7 +60,6 @@ public class GENIWorker extends AbstractWorker {
 	protected static final String SLIVER_INFO_PATH = "geni_sliver_info";
 	protected static final String COMPONENT_MANAGER = "component_manager";
 	protected static final String SLIVER_TYPE = "sliver_type/@name";
-	protected static final String SLIVER_SCHEMA = "http://www.gpolab.bbn.com/monitoring/schema/20140501/sliver#";
 
 	private static final String GENIDS_URL = "GENIDS.url";
 	private static final String GENIDS_USER = "GENIDS.user";
@@ -248,7 +248,7 @@ public class GENIWorker extends AbstractWorker {
 				Globals.debug("Inserting into ops_node");
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
 						"`node_type`, `virtualization_type` ) values (?, ?, ?, ?, ?, ?, ?, ?)");
-				pst1.setString(1, SLIVER_SCHEMA);
+				pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "node#");
 				pst1.setString(2, guid + ":" + id);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
@@ -314,7 +314,7 @@ public class GENIWorker extends AbstractWorker {
 				Globals.debug("Inserting into ops_link");
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
 						" values (?, ?, ?, ?, ?)");
-				pst1.setString(1, SLIVER_SCHEMA);
+				pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "link#");
 				pst1.setString(2, guid + ":" + id);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
@@ -384,9 +384,7 @@ public class GENIWorker extends AbstractWorker {
 
 				String sliver_id = sliver_urn.toString().replaceFirst("urn:publicid:IDN\\+", "").replaceAll("[+:]", "_");
 				String sliver_href = selfRefPrefix + "sliver/" + sliver_id;
-				// we want to make node or link self refs unique, and ORCA sliver id has a guid in
-				// it, so at least some peace of mind
-				String nodeLink_href = selfRefPrefix + t.name() + "/" + sliver_id;
+
 				//String sliver_uuid = sliver_urn.toString().replaceFirst("urn.+sliver\\+", "").split(":")[0];
 				String sliver_uuid = wmp.getReservationId(sliver_urn.toString());
 
@@ -479,6 +477,9 @@ public class GENIWorker extends AbstractWorker {
 					} else {
 						dbc = conPool.getDbConnection();
 						
+						// selfRefs and ids must be related
+						String nodeLink_href = selfRefPrefix + t.name() + "/" + resource;
+						
 						String query = null;
 						switch(t) {
 						case node:
@@ -495,7 +496,7 @@ public class GENIWorker extends AbstractWorker {
 						// insert into ops_sliver
 						Globals.debug("Inserting into ops_sliver");
 						PreparedStatement pst1 = dbc.prepareStatement(query);
-						pst1.setString(1, SLIVER_SCHEMA);
+						pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "sliver#");
 						pst1.setString(2, sliver_id);
 						pst1.setString(3, sliver_href);
 						pst1.setString(4, sliver_urn.toString());
