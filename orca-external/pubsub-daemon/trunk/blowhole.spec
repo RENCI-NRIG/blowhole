@@ -1,7 +1,7 @@
 Summary: Blowhole - An RSpec manifest spouter
 Name: blowhole
 Version: 0.2
-Release: 16
+Release: 17
 BuildRoot: %{_builddir}/%{name}-root
 Source0: blowhole-0.2.tgz
 Group: Applications/Communications
@@ -95,6 +95,10 @@ ln -s %{homedir}/bin/blowholed /etc/init.d
 %doc LICENSE README xoschema.sql
 
 %changelog
+*Fri Sep 19 2014 Jonathan Mills <jonmills@renci.org> - 0.2-17
+- svn r6822 contains fixes for ops_node schema, id, selfref issues
+- fixes ops_link schema, id, selfref issues
+- now requires "GENI.schema.prefix=http://www.gpolab.bbn.com/monitoring/schema/20140828/" in xmpp.properties file
 *Tue Sep 09 2014 Jonathan Mills <jonmills@renci.org> - 0.2-16
 - Fix for orca reservation id popping up in wrong place
 *Wed Sep 03 2014 Jonathan Mills <jonmills@renci.org> - 0.2-15
