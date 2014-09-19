@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -72,6 +73,9 @@ public class GENIWorker extends AbstractWorker {
 	protected GENIWorkerManifestParser wmp = null;
 	protected static DbPool conPool = null;
 	protected static Boolean flag = true;
+	
+	protected Map<String, String> interfaceToNode = new HashMap<String, String>();
+	protected Map<String, String> interfaceToLink = new HashMap<String, String>();
 
 	protected String sliceUrn, sliceUuid, sliceSmName, sliceSmGuid;
 
@@ -222,6 +226,13 @@ public class GENIWorker extends AbstractWorker {
 			String nodeType = xpath.compile(SLIVER_TYPE).evaluate(nl);
 			Globals.info("Adding node " + urn + " of " + id + " to node table and callback");
 			
+			// get the interfaces
+			NodeList ifaces = (NodeList)xpath.compile("interface/@client_id").evaluate(nl, XPathConstants.NODESET);
+			for(int i = 0; i < ifaces.getLength(); i++) {
+				String ifName = ifaces.item(i).getNodeValue();
+				interfaceToNode.put(ifName, guid + ":" + id);
+			}
+			
 			// based on type, guess the memory
 			String size;
 			String nType;
@@ -307,6 +318,14 @@ public class GENIWorker extends AbstractWorker {
 	private void insertLink(Node nl, XPath xpath, String guid, String id, String urn, String href, Date ts, Connection dbc) {
 		try {
 			Globals.info("Adding link " + urn + " of vlan " + id + " to link table and callback");
+			
+			// get the interfaces
+			NodeList ifaces = (NodeList)xpath.compile("interface_ref/@client_id").evaluate(nl, XPathConstants.NODESET);
+			for(int i = 0; i < ifaces.getLength(); i++) {
+				String ifName = ifaces.item(i).getNodeValue();
+				interfaceToLink.put(ifName, guid + ":" + id);
+			}
+			
 			if (!conPool.poolValid()) {
 				Globals.error("Datastore parameters are not valid, not saving to ops_link");
 			} else {
@@ -360,6 +379,8 @@ public class GENIWorker extends AbstractWorker {
 			
 		} catch(SQLException se) {
 			throw new RuntimeException("SQL exception: " + se);
+		} catch (XPathExpressionException xe) {
+			throw new RuntimeException("XPath exception: " + xe);
 		}
 	}
 
@@ -372,6 +393,7 @@ public class GENIWorker extends AbstractWorker {
 			// get sliver information
 			Globals.debug("There are " + nl.getLength() + " elements of type " + t.name());
 			String shortName = Globals.getInstance().getConfigProperty(GENI_SITE_PREFIX);
+			shortName = "bbn";
 			if ((shortName == null) || (shortName.length() == 0)) {
 				Globals.warn("No short site prefix GENI.site.prefix specified in the configuration, no slivers will be inserted in the databse");
 				return;
@@ -412,7 +434,7 @@ public class GENIWorker extends AbstractWorker {
 						}
 					}
 				}
-				
+
 				if (cm == null) {
 					Globals.warn("Unable to determine component manager for " + sliver_id + " skipping reporting");
 					continue;
@@ -472,23 +494,31 @@ public class GENIWorker extends AbstractWorker {
 						Globals.debug("Resource: " + resource);
 					}
 
+					// selfRefs and ids must be related
+					String nodeLink_href = selfRefPrefix + t.name() + "/" + resource;
+					
+					// soo this runs even if db is invalid
+					switch(t) {
+					case node:
+						insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
+						break;
+					case link:
+						insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
+						break;
+					}
+					
 					if (!conPool.poolValid()) {
 						Globals.error("Datastore parameters are not valid, not saving");
 					} else {
 						dbc = conPool.getDbConnection();
 						
-						// selfRefs and ids must be related
-						String nodeLink_href = selfRefPrefix + t.name() + "/" + resource;
-						
 						String query = null;
 						switch(t) {
 						case node:
-							insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `node_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 							break;
 						case link:
-							insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `link_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 							break;
@@ -532,6 +562,34 @@ public class GENIWorker extends AbstractWorker {
 					}
 				} else 
 					Globals.error("Unable to find sliver_info in node " + nl.item(i));
+			}
+//			System.out.println("interface to node map");
+//			for(Map.Entry<String, String> e: interfaceToNode.entrySet()) {
+//				System.out.println(e.getKey() + " --> " + e.getValue());
+//			}
+//			
+//			System.out.println("interface to link map");
+//			for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
+//				System.out.println(e.getKey() + " --> " + e.getValue());
+//			}
+			// populate ops_link_interfacevlan table 
+			// both interface tables should have the same number of entries
+			Globals.debug("Inserting into ops_link_interfacevlan");
+			for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
+				String nodeId = interfaceToNode.get(e.getKey());
+				String linkId = interfaceToLink.get(e.getKey());
+				String[] nodeIdParts = nodeId.split(":");
+				String[] linkIdParts = linkId.split(":");
+				if ((nodeIdParts.length != 3) || (linkIdParts.length != 2))
+					continue;
+				if (!conPool.poolValid()) {
+					Globals.error("Datastore parameters are not valid, not saving");
+				} else {
+					PreparedStatement pst = dbc.prepareStatement("INSERT INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
+					pst.setString(1, nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1]);
+					pst.setString(2, linkId);
+					executeAndClose(pst);
+				}
 			}
 		} catch(SQLException se) {
 			throw new RuntimeException("Unable to insert into the database: " + se);
@@ -590,12 +648,12 @@ public class GENIWorker extends AbstractWorker {
 		try {
 			gw.manifests = new HashMap<DocType, String>();
 
-			InputStream source = new FileInputStream(new File("/Users/ibaldin/Desktop/test.xml"));
+			InputStream source = new FileInputStream(new File("/Users/ibaldin/workspace-pubsub/pubsub-daemon/scripts/manifests/test1.xml"));
 			String text = new Scanner( source ).useDelimiter("\\A").next();
 			gw.manifests.put(DocType.RSPEC_MANIFEST, text);
 			
 			source.close();
-			source = new FileInputStream(new File("/Users/ibaldin/Desktop/test.rdf"));
+			source = new FileInputStream(new File("/Users/ibaldin/workspace-pubsub/pubsub-daemon/scripts/manifests/test1.rdf"));
 			text = new Scanner( source ).useDelimiter("\\A").next();
 			gw.manifests.put(DocType.NDL_MANIFEST, text);
 			

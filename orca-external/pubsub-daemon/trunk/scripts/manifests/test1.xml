@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<rspec type="manifest" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/manifest.xsd http://hpn.east.isi.edu/rspec/ext/stitch/0.1/ http://hpn.east.isi.edu/rspec/ext/stitch/0.1/stitch-schema.xsd http://groups.geni.net/exogeni/attachment/wiki/RspecExtensions/slice-info/1 http://groups.geni.net/exogeni/attachment/wiki/RspecExtensions/slice-info/1/slice_info.xsd?format=raw http://groups.geni.net/exogeni/attachment/wiki/RspecExtensions/sliver-info/1 http://groups.geni.net/exogeni/attachment/wiki/RspecExtensions/sliver-info/1/sliver_info.xsd?format=raw http://www.geni.net/resources/rspec/ext/postBootScript/1 http://www.geni.net/resources/rspec/ext/postBootScript/1/request.xsd http://www.geni.net/resources/rspec/ext/color/2 http://www.geni.net/resources/rspec/ext/color/2/color.xsd" xmlns:ns2="http://hpn.east.isi.edu/rspec/ext/stitch/0.1/" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ns4="http://groups.geni.net/exogeni/attachment/wiki/RspecExtensions/sliver-info/1" xmlns:ns3="http://groups.geni.net/exogeni/attachment/wiki/RspecExtensions/slice-info/1" xmlns:ns5="http://www.geni.net/resources/rspec/ext/postBootScript/1" xmlns:ns6="http://www.geni.net/resources/rspec/ext/color/2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <node client_id="Node2" component_id="urn:publicid:IDN+exogeni.net:bbnvmsite+node+orca-vm-cloud" component_manager_id="urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am" component_name="orca-vm-cloud" exclusive="false" sliver_id="urn:publicid:IDN+exogeni.net:unknownvmsite+sliver+2bd6f351-fd34-4daf-9ad1-d69e3c662960:Node2">
+        <location country="Unspecified" longitude="-71.14751" latitude="42.38974"/>
+        <sliver_type name="xo.large">
+            <disk_image name="http://geni-images.renci.org/images/standard/debian/deb6-ovs-neuca-v1.0.3.xml" version="ef7e0b4883e23c218d19b0f22980436020c72b4d"/>
+        </sliver_type>
+        <services/>
+        <interface client_id="VLAN0-Node2"/>
+        <interface client_id="Link18-Node2"/>
+        <ns4:geni_sliver_info creator_urn="EMAILADDRESS=exogeni-ops@renci.org, CN=geni-orca, OU=NRIG, O=RENCI, L=Chapel Hill, ST=NC, C=US" creation_time="2014-09-19T17:20:07.734-04:00" expiration_time="2014-09-20T17:20:07.734-04:00" start_time="2014-09-19T17:20:07.734-04:00" state="ready" resource_id="bbn-w1:guid4"/>
+    </node>
+    <node client_id="Node1" component_id="urn:publicid:IDN+exogeni.net:bbnvmsite+node+orca-vm-cloud" component_manager_id="urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am" component_name="orca-vm-cloud" exclusive="false" sliver_id="urn:publicid:IDN+exogeni.net:unknownvmsite+sliver+2bd6f351-fd34-4daf-9ad1-d69e3c662960:Node1">
+        <location country="Unspecified" longitude="-71.14751" latitude="42.38974"/>
+        <sliver_type name="xo.large">
+            <disk_image name="http://geni-images.renci.org/images/standard/debian/deb6-ovs-neuca-v1.0.3.xml" version="ef7e0b4883e23c218d19b0f22980436020c72b4d"/>
+        </sliver_type>
+        <services/>
+        <interface client_id="VLAN0-Node1"/>
+        <ns4:geni_sliver_info creator_urn="EMAILADDRESS=exogeni-ops@renci.org, CN=geni-orca, OU=NRIG, O=RENCI, L=Chapel Hill, ST=NC, C=US" creation_time="2014-09-19T17:20:07.734-04:00" expiration_time="2014-09-20T17:20:07.734-04:00" start_time="2014-09-19T17:20:07.734-04:00" state="ready" resource_id="bbn-w3:guid3"/>
+    </node>
+    <node client_id="Node0" component_id="urn:publicid:IDN+exogeni.net:bbnvmsite+node+orca-vm-cloud" component_manager_id="urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am" component_name="orca-vm-cloud" exclusive="false" sliver_id="urn:publicid:IDN+exogeni.net:unknownvmsite+sliver+2bd6f351-fd34-4daf-9ad1-d69e3c662960:Node0">
+        <location country="Unspecified" longitude="-71.14751" latitude="42.38974"/>
+        <sliver_type name="xo.large">
+            <disk_image name="http://geni-images.renci.org/images/standard/debian/deb6-ovs-neuca-v1.0.3.xml" version="ef7e0b4883e23c218d19b0f22980436020c72b4d"/>
+        </sliver_type>
+        <services/>
+        <interface client_id="VLAN0-Node0"/>
+        <ns4:geni_sliver_info creator_urn="EMAILADDRESS=exogeni-ops@renci.org, CN=geni-orca, OU=NRIG, O=RENCI, L=Chapel Hill, ST=NC, C=US" creation_time="2014-09-19T17:20:07.734-04:00" expiration_time="2014-09-20T17:20:07.734-04:00" start_time="2014-09-19T17:20:07.734-04:00" state="ready" resource_id="bbn-w2:guid2"/>
+    </node>
+    <node client_id="Node5" component_id="urn:publicid:IDN+exogeni.net:bbnvmsite+node+orca-vm-cloud" component_manager_id="urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am" component_name="orca-vm-cloud" exclusive="false" sliver_id="urn:publicid:IDN+exogeni.net:unknownvmsite+sliver+2bd6f351-fd34-4daf-9ad1-d69e3c662960:Node5">
+        <location country="Unspecified" longitude="-71.14751" latitude="42.38974"/>
+        <sliver_type name="xo.large">
+            <disk_image name="http://geni-images.renci.org/images/standard/debian/deb6-ovs-neuca-v1.0.3.xml" version="ef7e0b4883e23c218d19b0f22980436020c72b4d"/>
+        </sliver_type>
+        <services/>
+        <interface client_id="Link18-Node5"/>
+        <ns4:geni_sliver_info creator_urn="EMAILADDRESS=exogeni-ops@renci.org, CN=geni-orca, OU=NRIG, O=RENCI, L=Chapel Hill, ST=NC, C=US" creation_time="2014-09-19T17:20:07.734-04:00" expiration_time="2014-09-20T17:20:07.734-04:00" start_time="2014-09-19T17:20:07.734-04:00" state="ready" resource_id="bbn-w1:guid1"/>
+    </node>
+    <link client_id="VLAN0" sliver_id="urn:publicid:IDN+exogeni.net:unknownvmsite+sliver+2bd6f351-fd34-4daf-9ad1-d69e3c662960:VLAN0" vlantag="3">
+        <component_manager name="urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am"/>
+        <interface_ref client_id="VLAN0-Node2"/>
+        <property source_id="VLAN0-Node2" dest_id="VLAN0-Node0" capacity="0"/>
+        <property source_id="VLAN0-Node2" dest_id="VLAN0-Node1" capacity="0"/>
+        <interface_ref client_id="VLAN0-Node0"/>
+        <property source_id="VLAN0-Node0" dest_id="VLAN0-Node2" capacity="0"/>
+        <property source_id="VLAN0-Node0" dest_id="VLAN0-Node1" capacity="0"/>
+        <interface_ref client_id="VLAN0-Node1"/>
+        <property source_id="VLAN0-Node1" dest_id="VLAN0-Node2" capacity="0"/>
+        <property source_id="VLAN0-Node1" dest_id="VLAN0-Node0" capacity="0"/>
+        <ns4:geni_sliver_info creator_urn="EMAILADDRESS=exogeni-ops@renci.org, CN=geni-orca, OU=NRIG, O=RENCI, L=Chapel Hill, ST=NC, C=US" creation_time="2014-09-19T17:20:07.734-04:00" expiration_time="2014-09-20T17:20:07.734-04:00" start_time="2014-09-19T17:20:07.734-04:00" state="ready" resource_id="3"/>
+    </link>
+    <link client_id="Link18" sliver_id="urn:publicid:IDN+exogeni.net:unknownvmsite+sliver+2bd6f351-fd34-4daf-9ad1-d69e3c662960:Link18" vlantag="2">
+        <component_manager name="urn:publicid:IDN+exogeni.net:bbnvmsite+authority+am"/>
+        <interface_ref client_id="Link18-Node5"/>
+        <property source_id="Link18-Node5" dest_id="Link18-Node2" capacity="10000000"/>
+        <interface_ref client_id="Link18-Node2"/>
+        <property source_id="Link18-Node2" dest_id="Link18-Node5" capacity="10000000"/>
+        <ns4:geni_sliver_info creator_urn="EMAILADDRESS=exogeni-ops@renci.org, CN=geni-orca, OU=NRIG, O=RENCI, L=Chapel Hill, ST=NC, C=US" creation_time="2014-09-19T17:20:07.734-04:00" expiration_time="2014-09-20T17:20:07.734-04:00" start_time="2014-09-19T17:20:07.734-04:00" state="ready" resource_id="2"/>
+    </link>
+    <ns3:geni_slice_info urn="test-1" uuid="6abe6cdb-91f4-4606-960f-8a49455e1bfb" state="ready"/>
+</rspec>
+
