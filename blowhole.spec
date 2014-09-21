@@ -1,7 +1,7 @@
 Summary: Blowhole - An RSpec manifest spouter
 Name: blowhole
 Version: 0.2
-Release: 17
+Release: 18
 BuildRoot: %{_builddir}/%{name}-root
 Source0: blowhole-0.2.tgz
 Group: Applications/Communications
@@ -95,6 +95,8 @@ ln -s %{homedir}/bin/blowholed /etc/init.d
 %doc LICENSE README xoschema.sql
 
 %changelog
+*Sun Sep 21 2014 Jonathan Mills <jonmills@renci.org> - 0.2-18
+- some fixes for ops_interfacevlan table
 *Fri Sep 19 2014 Jonathan Mills <jonmills@renci.org> - 0.2-17
 - svn r6822 contains fixes for ops_node schema, id, selfref issues
 - fixes ops_link schema, id, selfref issues
