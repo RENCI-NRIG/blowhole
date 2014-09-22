@@ -393,7 +393,6 @@ public class GENIWorker extends AbstractWorker {
 			// get sliver information
 			Globals.debug("There are " + nl.getLength() + " elements of type " + t.name());
 			String shortName = Globals.getInstance().getConfigProperty(GENI_SITE_PREFIX);
-			shortName = "bbn";
 			if ((shortName == null) || (shortName.length() == 0)) {
 				Globals.warn("No short site prefix GENI.site.prefix specified in the configuration, no slivers will be inserted in the databse");
 				return;
