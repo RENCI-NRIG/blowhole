@@ -25,6 +25,7 @@ import javax.xml.xpath.XPath;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smackx.pubsub.Subscription;
 import org.renci.xmpp_pubsub.IPubSubReconnectCallback;
 import org.renci.xmpp_pubsub.XMPPPubSub;
@@ -82,6 +83,8 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 	private ManifestSubscriber() {
 		processPreferences();
 
+		SmackConfiguration.setLocalSocks5ProxyEnabled(false);
+		
 		// create logger
 		PropertyConfigurator.configure(prefProperties);
 		Logger logger = Logger.getLogger(this.getClass());
