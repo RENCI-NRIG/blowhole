@@ -495,16 +495,7 @@ public class GENIWorker extends AbstractWorker {
 
 					// selfRefs and ids must be related
 					String nodeLink_href = selfRefPrefix + t.name() + "/" + resource;
-					
-					// soo this runs even if db is invalid
-					switch(t) {
-					case node:
-						insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
-						break;
-					case link:
-						insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
-						break;
-					}
+
 					
 					if (!conPool.poolValid()) {
 						Globals.error("Datastore parameters are not valid, not saving");
@@ -514,10 +505,12 @@ public class GENIWorker extends AbstractWorker {
 						String query = null;
 						switch(t) {
 						case node:
+							insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `node_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 							break;
 						case link:
+							insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `link_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 							break;
