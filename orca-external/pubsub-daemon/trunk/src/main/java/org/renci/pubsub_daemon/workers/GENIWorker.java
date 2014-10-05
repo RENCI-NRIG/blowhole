@@ -153,7 +153,7 @@ public class GENIWorker extends AbstractWorker {
 				executeAndClose(pst, ++tryIndex);
 			else
 				throw new RuntimeException("Unable to insert into the database: " + e);
-		}
+		} 
 	}
 
 	private void insertInDb() {
@@ -478,7 +478,7 @@ public class GENIWorker extends AbstractWorker {
 						continue;
 					}
 
-					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", resource);
+					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", sliver_uuid + ":" + resource);
 					String resource_href = selfRefPrefix + "resource/" + resource;
 
 					if (Globals.getInstance().isDebugOn()) {
@@ -494,7 +494,7 @@ public class GENIWorker extends AbstractWorker {
 					}
 
 					// selfRefs and ids must be related
-					String nodeLink_href = selfRefPrefix + t.name() + "/" + resource;
+					String nodeLink_href = selfRefPrefix + t.name() + "/" + sliver_uuid + ":" + resource;
 
 					
 					if (!conPool.poolValid()) {
@@ -577,9 +577,13 @@ public class GENIWorker extends AbstractWorker {
 				if (!conPool.poolValid()) {
 					Globals.error("Datastore parameters are not valid, not saving");
 				} else {
-					PreparedStatement pst = dbc.prepareStatement("INSERT INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
+					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("INSERT INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
 					pst.setString(1, nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1]);
 					pst.setString(2, linkId);
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("SET foreign_key_checks=1");
 					executeAndClose(pst);
 				}
 			}
