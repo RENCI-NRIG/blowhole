@@ -76,6 +76,7 @@ public class GENIWorker extends AbstractWorker {
 	
 	protected Map<String, String> interfaceToNode = new HashMap<String, String>();
 	protected Map<String, String> interfaceToLink = new HashMap<String, String>();
+	protected Map<String, String> nodeToAggregate = new HashMap<String, String>();
 
 	protected String sliceUrn, sliceUuid, sliceSmName, sliceSmGuid;
 
@@ -226,11 +227,12 @@ public class GENIWorker extends AbstractWorker {
 			String nodeType = xpath.compile(SLIVER_TYPE).evaluate(nl);
 			Globals.info("Adding node " + urn + " of " + id + " to node table and callback");
 			
+			String nodeId = guid + ":" + id;
 			// get the interfaces
 			NodeList ifaces = (NodeList)xpath.compile("interface/@client_id").evaluate(nl, XPathConstants.NODESET);
 			for(int i = 0; i < ifaces.getLength(); i++) {
 				String ifName = ifaces.item(i).getNodeValue();
-				interfaceToNode.put(ifName, guid + ":" + id);
+				interfaceToNode.put(ifName, nodeId);
 			}
 			
 			// based on type, guess the memory
@@ -260,7 +262,7 @@ public class GENIWorker extends AbstractWorker {
 				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
 						"`node_type`, `virtualization_type` ) values (?, ?, ?, ?, ?, ?, ?, ?)");
 				pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "node#");
-				pst1.setString(2, guid + ":" + id);
+				pst1.setString(2, nodeId);
 				pst1.setString(3, href);
 				pst1.setString(4, urn);
 				pst1.setLong(5, ts.getTime()*MS_TO_US);
@@ -478,7 +480,9 @@ public class GENIWorker extends AbstractWorker {
 						continue;
 					}
 
-					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", sliver_uuid + ":" + resource);
+					String full_resource_id = sliver_uuid + ":" + resource;
+					
+					String resource_urn = NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", full_agg_id).replaceAll("\\^", type).replaceAll("%", full_resource_id);
 					String resource_href = selfRefPrefix + "resource/" + resource;
 
 					if (Globals.getInstance().isDebugOn()) {
@@ -505,6 +509,7 @@ public class GENIWorker extends AbstractWorker {
 						String query = null;
 						switch(t) {
 						case node:
+							nodeToAggregate.put(full_resource_id, full_agg_id);
 							insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
 							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `node_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -566,7 +571,7 @@ public class GENIWorker extends AbstractWorker {
 //			}
 			// populate ops_link_interfacevlan table 
 			// both interface tables should have the same number of entries
-			Globals.debug("Inserting into ops_link_interfacevlan");
+			Globals.debug("Inserting into ops_link_interfacevlan and ops_node_interface");
 			for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
 				String nodeId = interfaceToNode.get(e.getKey());
 				String linkId = interfaceToLink.get(e.getKey());
@@ -577,11 +582,18 @@ public class GENIWorker extends AbstractWorker {
 				if (!conPool.poolValid()) {
 					Globals.error("Datastore parameters are not valid, not saving");
 				} else {
+					String interfaceId = nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1];
 					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
 					executeAndClose(pst);
 					pst = dbc.prepareStatement("INSERT INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
-					pst.setString(1, nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1]);
+					pst.setString(1, interfaceId);
 					pst.setString(2, linkId);
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("INSERT INTO `ops_node_interface` ( `id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
+					pst.setString(1, interfaceId);
+					pst.setString(2, selfRefPrefix + "interface/" + interfaceId);
+					pst.setString(3, NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", interfaceId));
+					pst.setString(4,  nodeId);
 					executeAndClose(pst);
 					pst = dbc.prepareStatement("SET foreign_key_checks=1");
 					executeAndClose(pst);
