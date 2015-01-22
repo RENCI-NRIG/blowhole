@@ -256,8 +256,13 @@ public class GENIWorkerManifestParser implements INdlManifestModelListener, INdl
 			sliverId = NdlToRSpecHelper.sliverUrnFromRack(NdlToRSpecHelper.getTrueName(r), NdlToRSpecHelper.getControllerForUrl(controllerUrl));
 		String resNotice = NdlCommons.getResourceReservationNotice(r);
 		
-		if ( resNotice != null) 
+		if ( resNotice != null) {
 			urnToReservation.put(sliverId, getGuidFromNotice(resNotice));
+		}
+	}
+	
+	public Map<String, String> getReservationMap() {
+		return urnToReservation;
 	}
 	
 	private static final String NOTICE_GUID_PATTERN = "^Reservation\\s+([a-zA-Z0-9-]+)\\s+.+$";
