@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,6 +36,7 @@ import javax.xml.xpath.XPathFactory;
 import orca.ndl.NdlToRSpecHelper;
 
 import org.renci.pubsub_daemon.Globals;
+import org.renci.pubsub_daemon.ManifestSubscriber;
 import org.renci.pubsub_daemon.util.DbPool;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -52,6 +52,8 @@ public class GENIWorker extends AbstractWorker {
 	private static final int MS_TO_US = 1000;
 	private static final String GENI_SELFREF_PREFIX_PROPERTY = "GENI.selfref.prefix";
 	private static final String GENI_SCHEMA_PREFIX_PROPERTY = "GENI.schema.prefix";
+	private static final String GENI_AGGREGATE_MEAS_REF_PROPERTY = "GENI.aggregate.meas.ref";
+	private static final String GENI_OPERATIONAL_STATUS_PROPERTY  = "GENI.operational.status";
 	private static final String GENIWorkerName = "GENI Manifest worker; puts RSpec elements into the datastore";
 
 	//String selfRefPrefix = "http://rci-hn.exogeni.net/info/";
@@ -506,6 +508,10 @@ public class GENIWorker extends AbstractWorker {
 					} else {
 						dbc = conPool.getDbConnection();
 						
+						// update timestamp in ops_aggregate
+						PreparedStatement pstup = dbc.prepareStatement("UPDATE ops_aggregate SET ts=" + ts.getTime()*MS_TO_US + " WHERE id=" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite;");
+						executeAndClose(pstup);
+						
 						String query = null;
 						switch(t) {
 						case node:
@@ -669,6 +675,46 @@ public class GENIWorker extends AbstractWorker {
 		} catch(Exception e) {
 			System.err.println("Something went bad: " + e);
 			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Populate ops_aggregate table
+	 */
+	public void runAtStartup() {
+		Connection dbc = null;
+		
+		synchronized(flag) {
+			if (conPool == null) 
+				conPool = new DbPool(Globals.getInstance().getConfigProperty(GENIDS_URL), 
+						Globals.getInstance().getConfigProperty(GENIDS_USER), 
+						Globals.getInstance().getConfigProperty(GENIDS_PASS));
+		}
+		try {
+			dbc = conPool.getDbConnection();
+			
+			PreparedStatement pst = dbc.prepareStatement("DELETE FROM ops_aggregate; INSERT INTO `ops_aggregate` (`$schema`, `id`, `selfRef`, `urn`, `ts`, `measRef`, `populator_version`, `operational_status`) values (?, ?, ?, ?, ?, ?, ?, ?);");
+			pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "aggregate#");
+			pst.setString(2, getConfigProperty(GENI_SITE_PREFIX) + "vmsite");
+			pst.setString(3, selfRefPrefix + "aggregate/" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite");
+			pst.setString(4, "urn:publicid:IDN+exogeni.net:" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite+authority+am");
+			Date ts = new Date();
+			pst.setLong(5, ts.getTime()*MS_TO_US);
+			pst.setString(6, getConfigProperty(GENI_AGGREGATE_MEAS_REF_PROPERTY));
+			pst.setString(7, ManifestSubscriber.buildVersion);
+			pst.setString(8, getConfigProperty(GENI_OPERATIONAL_STATUS_PROPERTY));
+			
+			executeAndClose(pst);
+			
+		} catch (SQLException se) {
+			throw new RuntimeException("Unable to refresh ops_aggregate table due to: " + se);
+		} finally {
+			if (dbc != null)
+				try {
+					dbc.close();
+				} catch (SQLException e) {
+					throw new RuntimeException("Error closing mysql db connection: " + e);
+				}
 		}
 	}
 }

@@ -87,4 +87,7 @@ public class GMOCWorker extends AbstractWorker {
 		return Arrays.asList(AbstractWorker.DocType.NDL_MANIFEST, AbstractWorker.DocType.RSPEC_MANIFEST);
 	}
 
+	public void runAtStartup() {
+		
+	}
 }

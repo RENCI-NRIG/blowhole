@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.zip.DataFormatException;
 
 import orca.ndl_conversion.IMultiFormatConverter;
-import orca.ndl_conversion.UniversalNDLConverter;
 
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
