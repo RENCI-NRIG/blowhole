@@ -261,7 +261,7 @@ public class GENIWorker extends AbstractWorker {
 			} else {
 				// insert into ops_node
 				Globals.debug("Inserting into ops_node");
-				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
+				PreparedStatement pst1 = dbc.prepareStatement("INSERT IGNORE INTO `ops_node` ( `$schema` , `id` , `selfRef` , `urn` , `ts`, `properties$mem_total_kb`, " + 
 						"`node_type`, `virtualization_type` ) values (?, ?, ?, ?, ?, ?, ?, ?)");
 				pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "node#");
 				pst1.setString(2, nodeId);
@@ -335,7 +335,7 @@ public class GENIWorker extends AbstractWorker {
 			} else {
 				// insert into ops_link
 				Globals.debug("Inserting into ops_link");
-				PreparedStatement pst1 = dbc.prepareStatement("INSERT INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
+				PreparedStatement pst1 = dbc.prepareStatement("INSERT IGNORE INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
 						" values (?, ?, ?, ?, ?)");
 				pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "link#");
 				pst1.setString(2, guid + ":" + id);
@@ -412,6 +412,13 @@ public class GENIWorker extends AbstractWorker {
 
 				//String sliver_uuid = sliver_urn.toString().replaceFirst("urn.+sliver\\+", "").split(":")[0];
 				String sliver_uuid = wmp.getReservationId(sliver_urn.toString());
+				if (sliver_uuid == null) {
+					Globals.error("Parser unable to find reservation id for sliver urn " + sliver_urn + ". Available entries are: ");
+					Map<String, String> resmap = wmp.getReservationMap();
+					for (Map.Entry<String, String> em: resmap.entrySet()) {
+						Globals.error("\t" + em.getKey() + " = " + em.getValue());
+					}
+				}
 
 				Date ts = new Date();
 
@@ -519,12 +526,12 @@ public class GENIWorker extends AbstractWorker {
 						case node:
 							nodeToAggregate.put(full_resource_id, full_agg_id);
 							insertNode(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
-							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
+							query = "INSERT IGNORE INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `node_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 							break;
 						case link:
 							insertLink(nl.item(i), xpath, sliver_uuid, resource, resource_urn, nodeLink_href, ts, dbc);
-							query = "INSERT INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
+							query = "INSERT IGNORE INTO `ops_sliver` ( `$schema` , `id` , `selfRef` , `urn` , `uuid`, `ts`, `aggregate_urn`, " + 
 									"`aggregate_href` , `slice_urn` , `slice_uuid` , `creator` , `created` , `expires`, `link_id`) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 							break;
 						}
@@ -549,7 +556,7 @@ public class GENIWorker extends AbstractWorker {
 
 						// insert into ops_aggregate_sliver
 						Globals.debug("Inserting into ops_aggregate_sliver");
-						PreparedStatement pst2 = dbc.prepareStatement("INSERT INTO `ops_aggregate_sliver` ( `id` , `aggregate_id`, `urn` , `selfRef`) values (?, ?, ?, ?)");
+						PreparedStatement pst2 = dbc.prepareStatement("INSERT IGNORE INTO `ops_aggregate_sliver` ( `id` , `aggregate_id`, `urn` , `selfRef`) values (?, ?, ?, ?)");
 						pst2.setString(1, sliver_id);
 						pst2.setString(2, agg_id);
 						pst2.setString(3, sliver_urn.toString());
@@ -593,11 +600,11 @@ public class GENIWorker extends AbstractWorker {
 					String interfaceId = nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1];
 					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
 					executeAndClose(pst);
-					pst = dbc.prepareStatement("INSERT INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
 					pst.setString(1, interfaceId);
 					pst.setString(2, linkId);
 					executeAndClose(pst);
-					pst = dbc.prepareStatement("INSERT INTO `ops_node_interface` ( `id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_node_interface` ( `id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
 					pst.setString(1, interfaceId);
 					pst.setString(2, selfRefPrefix + "interface/" + interfaceId);
 					pst.setString(3, NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", interfaceId));
