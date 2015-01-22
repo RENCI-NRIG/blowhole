@@ -413,11 +413,8 @@ public class GENIWorker extends AbstractWorker {
 				//String sliver_uuid = sliver_urn.toString().replaceFirst("urn.+sliver\\+", "").split(":")[0];
 				String sliver_uuid = wmp.getReservationId(sliver_urn.toString());
 				if (sliver_uuid == null) {
-					Globals.error("Parser unable to find reservation id for sliver urn " + sliver_urn + ". Available entries are: ");
-					Map<String, String> resmap = wmp.getReservationMap();
-					for (Map.Entry<String, String> em: resmap.entrySet()) {
-						Globals.error("\t" + em.getKey() + " = " + em.getValue());
-					}
+					Globals.warn("Parser unable to find reservation id for sliver urn " + sliver_urn + ". Sliver will not be inserted in db, skipping reporting");
+					continue;
 				}
 
 				Date ts = new Date();
