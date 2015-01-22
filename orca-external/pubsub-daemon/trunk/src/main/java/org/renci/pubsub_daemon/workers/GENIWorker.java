@@ -695,6 +695,9 @@ public class GENIWorker extends AbstractWorker {
 		try {
 			dbc = conPool.getDbConnection();
 			
+			PreparedStatement pstc = dbc.prepareStatement("SET foreign_key_checks=0");
+			executeAndClose(pstc);
+			
 			PreparedStatement pstd = dbc.prepareStatement("DELETE FROM ops_aggregate");
 			executeAndClose(pstd);
 			
@@ -710,6 +713,9 @@ public class GENIWorker extends AbstractWorker {
 			pst.setString(8, getConfigProperty(GENI_OPERATIONAL_STATUS_PROPERTY));
 			
 			executeAndClose(pst);
+			
+			PreparedStatement pstcc = dbc.prepareStatement("SET foreign_key_checks=1");
+			executeAndClose(pstcc);
 			
 		} catch (SQLException se) {
 			throw new RuntimeException("Unable to refresh ops_aggregate table due to: " + se);
