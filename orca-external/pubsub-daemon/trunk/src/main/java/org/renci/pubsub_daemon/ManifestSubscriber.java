@@ -37,7 +37,7 @@ import org.renci.xmpp_pubsub.XMPPPubSub;
  * @author ibaldin
  */
 public class ManifestSubscriber implements IPubSubReconnectCallback {
-	public static final String buildVersion = "Blowhole + " + ManifestSubscriber.class.getPackage().getImplementationVersion();
+	public static final String buildVersion = "Blowhole " + ManifestSubscriber.class.getPackage().getImplementationVersion();
 	private static final String ORCA_SM_SLICE_LIST_SUFFIX = ".+sliceList";
 	private static final String ORCA_SM_PREFIX = "/orca/sm/";
 
