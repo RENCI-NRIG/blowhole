@@ -29,6 +29,11 @@ public abstract class AbstractWorker {
 	public abstract List<DocType> listDocTypes();
 
 	/**
+	 * Run once at startup
+	 */
+	public abstract void runAtStartup();
+	
+	/**
 	 * Process manifests of different types (as indicated by listManifestTypes())
 	 * @param manifests
 	 * @param sliceUrn

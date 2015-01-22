@@ -151,4 +151,8 @@ public class XODbWorker extends AbstractWorker {
 				throw new RuntimeException("Unable to insert into the database: " + e);
 		}
 	}
+	
+	public void runAtStartup() {
+		
+	}
 }

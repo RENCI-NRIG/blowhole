@@ -133,7 +133,7 @@ public class Globals {
 	}
 	
 	public String toString() {
-		return "Up since " + since + " subscribed to " + manifestsSubscribed + ", served " + eventsServed + " manifest events";
+		return ManifestSubscriber.buildVersion + ": Up since " + since + " subscribed to " + manifestsSubscribed + ", served " + eventsServed + " manifest events";
 	}
 	
 	synchronized void incManifests() {
