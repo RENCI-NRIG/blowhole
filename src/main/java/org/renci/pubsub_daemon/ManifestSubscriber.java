@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smackx.pubsub.Subscription;
+import org.renci.pubsub_daemon.workers.AbstractWorker;
 import org.renci.xmpp_pubsub.IPubSubReconnectCallback;
 import org.renci.xmpp_pubsub.XMPPPubSub;
 
@@ -163,6 +164,12 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		rst.updateSliceList(missingNodes);
 		addShutDownHandler();
 		sem.release();
+		
+		// run startup functions
+		for(AbstractWorker w: Globals.getInstance().getWorkers()) {
+			Globals.info("Running startup function for " + w.getName());
+			w.runAtStartup();
+		}
 		
 		// start a periodic reporting thread
 		tmr = new Timer("PubSub Background", true);
