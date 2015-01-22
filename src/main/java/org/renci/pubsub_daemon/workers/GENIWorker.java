@@ -509,7 +509,9 @@ public class GENIWorker extends AbstractWorker {
 						dbc = conPool.getDbConnection();
 						
 						// update timestamp in ops_aggregate
-						PreparedStatement pstup = dbc.prepareStatement("UPDATE ops_aggregate SET ts=" + ts.getTime()*MS_TO_US + " WHERE id=" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite");
+						String upstat = "UPDATE ops_aggregate SET ts=" + ts.getTime()*MS_TO_US + " WHERE id=" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite";
+						Globals.info("Update statement: [" + upstat + "]");
+						PreparedStatement pstup = dbc.prepareStatement(upstat);
 						executeAndClose(pstup);
 						
 						String query = null;
