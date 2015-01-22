@@ -509,7 +509,7 @@ public class GENIWorker extends AbstractWorker {
 						dbc = conPool.getDbConnection();
 						
 						// update timestamp in ops_aggregate
-						PreparedStatement pstup = dbc.prepareStatement("UPDATE ops_aggregate SET ts=" + ts.getTime()*MS_TO_US + " WHERE id=" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite;");
+						PreparedStatement pstup = dbc.prepareStatement("UPDATE ops_aggregate SET ts=" + ts.getTime()*MS_TO_US + " WHERE id=" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite");
 						executeAndClose(pstup);
 						
 						String query = null;
@@ -693,7 +693,10 @@ public class GENIWorker extends AbstractWorker {
 		try {
 			dbc = conPool.getDbConnection();
 			
-			PreparedStatement pst = dbc.prepareStatement("DELETE FROM ops_aggregate; INSERT INTO `ops_aggregate` (`$schema`, `id`, `selfRef`, `urn`, `ts`, `measRef`, `populator_version`, `operational_status`) values (?, ?, ?, ?, ?, ?, ?, ?);");
+			PreparedStatement pstd = dbc.prepareStatement("DELETE FROM ops_aggregate");
+			executeAndClose(pstd);
+			
+			PreparedStatement pst = dbc.prepareStatement("INSERT INTO `ops_aggregate` (`$schema`, `id`, `selfRef`, `urn`, `ts`, `measRef`, `populator_version`, `operational_status`) values (?, ?, ?, ?, ?, ?, ?, ?);");
 			pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "aggregate#");
 			pst.setString(2, getConfigProperty(GENI_SITE_PREFIX) + "vmsite");
 			pst.setString(3, selfRefPrefix + "aggregate/" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite");
