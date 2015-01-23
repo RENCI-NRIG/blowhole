@@ -130,9 +130,10 @@ public class GENIWorker extends AbstractWorker {
 		try {
 			wmp.parse(manifests.get(DocType.NDL_MANIFEST));
 		} catch (Exception e) {
-			throw new RuntimeException("Unable to parse NDL manifest: " + e.getMessage());
+			throw new RuntimeException("Unable to parse NDL manifest for " + sliceUrn + ": " + e.getMessage());
 		}
 		
+		Globals.info("Processing slice " + sliceUrn);
 		insertInDb();
 	}
 
@@ -142,21 +143,29 @@ public class GENIWorker extends AbstractWorker {
 
 	private final static int SQL_RETRIES = 3;
 
+	private void _executeAndClose(PreparedStatement pst, int tryIndex) {
+		try {
+			pst.execute();
+		} catch (SQLException e) {
+			if (tryIndex < SQL_RETRIES)
+				_executeAndClose(pst, ++tryIndex);
+			else
+				throw new RuntimeException("Unable to insert into the database: " + e);
+		} 	
+	}
+	
 	/**
 	 * Guard against transient SQL errors
 	 * @param pst
 	 * @param tryIndex
 	 */
 	private void executeAndClose(PreparedStatement pst, int tryIndex) {
+		_executeAndClose(pst, tryIndex);
 		try {
-			pst.execute();
 			pst.close();
-		} catch (SQLException e) {
-			if (tryIndex < SQL_RETRIES)
-				executeAndClose(pst, ++tryIndex);
-			else
-				throw new RuntimeException("Unable to insert into the database: " + e);
-		} 
+		} catch (SQLException se) {
+			;
+		}
 	}
 
 	private void insertInDb() {
@@ -182,6 +191,9 @@ public class GENIWorker extends AbstractWorker {
 			expr = xpath.compile("/rspec/link");
 			nl = (NodeList)expr.evaluate(doc, XPathConstants.NODESET);
 			insertSliverInfo(nl, xpath, SliverType.link);
+			
+			// deal with interfaces after the fact (everything has been parsed)
+			insertInterfaceInfo();
 
 		} catch (SAXParseException err) {
 			throw new RuntimeException("Unable to parse document line " + err.getLineNumber () + ", uri " + err.getSystemId () + " " + err.getMessage ());
@@ -483,6 +495,7 @@ public class GENIWorker extends AbstractWorker {
 
 					String resource = xpath.compile(SLIVER_INFO_PATH + "/@resource_id").evaluate(nl.item(i));
 					if ((resource == null) || (resource.length() == 0)) {
+						Globals.info("Resource is null, skipping reporting");
 						continue;
 					}
 
@@ -559,57 +572,9 @@ public class GENIWorker extends AbstractWorker {
 						pst2.setString(3, sliver_urn.toString());
 						pst2.setString(4, sliver_href);
 						executeAndClose(pst2);
-
-//						// insert into ops_sliver_resource
-//						Globals.debug("Inserting into ops_sliver_resource");
-//						PreparedStatement pst3 = dbc.prepareStatement("INSERT INTO `ops_sliver_resource` ( `id` , `sliver_id` , `urn` , `selfRef` ) values (?, ?, ?, ?)");
-//						pst3.setString(1, resource);
-//						pst3.setString(2, sliver_id);
-//						pst3.setString(3, resource_urn);
-//						pst3.setString(4, nodeLink_href);
-//						executeAndClose(pst3);
 					}
 				} else 
 					Globals.error("Unable to find sliver_info in node " + nl.item(i));
-			}
-//			System.out.println("interface to node map");
-//			for(Map.Entry<String, String> e: interfaceToNode.entrySet()) {
-//				System.out.println(e.getKey() + " --> " + e.getValue());
-//			}
-//			
-//			System.out.println("interface to link map");
-//			for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
-//				System.out.println(e.getKey() + " --> " + e.getValue());
-//			}
-			// populate ops_link_interfacevlan table 
-			// both interface tables should have the same number of entries
-			Globals.debug("Inserting into ops_link_interfacevlan and ops_node_interface");
-			for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
-				String nodeId = interfaceToNode.get(e.getKey());
-				String linkId = interfaceToLink.get(e.getKey());
-				String[] nodeIdParts = nodeId.split(":");
-				String[] linkIdParts = linkId.split(":");
-				if ((nodeIdParts.length != 3) || (linkIdParts.length != 2))
-					continue;
-				if (!conPool.poolValid()) {
-					Globals.error("Datastore parameters are not valid, not saving");
-				} else {
-					String interfaceId = nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1];
-					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
-					executeAndClose(pst);
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
-					pst.setString(1, interfaceId);
-					pst.setString(2, linkId);
-					executeAndClose(pst);
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_node_interface` ( `id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
-					pst.setString(1, interfaceId);
-					pst.setString(2, selfRefPrefix + "interface/" + interfaceId);
-					pst.setString(3, NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", interfaceId));
-					pst.setString(4,  nodeId);
-					executeAndClose(pst);
-					pst = dbc.prepareStatement("SET foreign_key_checks=1");
-					executeAndClose(pst);
-				}
 			}
 		} catch(SQLException se) {
 			throw new RuntimeException("Unable to insert into the database: " + se);
@@ -628,6 +593,72 @@ public class GENIWorker extends AbstractWorker {
 		}
 	}
 
+	private void insertInterfaceInfo() {
+//		System.out.println("interface to node map");
+//		for(Map.Entry<String, String> e: interfaceToNode.entrySet()) {
+//			System.out.println(e.getKey() + " --> " + e.getValue());
+//		}
+//		
+//		System.out.println("interface to link map");
+//		for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
+//			System.out.println(e.getKey() + " --> " + e.getValue());
+//		}
+		// populate ops_link_interfacevlan table 
+		// both interface tables should have the same number of entries
+		
+		Connection dbc = null;
+		
+		try {
+			if (!conPool.poolValid()) {
+				Globals.error("Datastore parameters are not valid, not inserting interface info");
+			} else {
+				dbc = conPool.getDbConnection();
+				Globals.debug("Inserting into ops_link_interfacevlan and ops_node_interface");
+				for(Map.Entry<String, String> e: interfaceToLink.entrySet()) {
+					String nodeId = interfaceToNode.get(e.getKey());
+					String linkId = interfaceToLink.get(e.getKey());
+					if ((linkId == null) || (nodeId == null)) {
+						Globals.warn("Unable to insert interface " + e.getKey() + " info - manifest must still be incomplete, skipping");
+						continue;
+					}
+					String[] nodeIdParts = nodeId.split(":");
+					String[] linkIdParts = linkId.split(":");
+					if ((nodeIdParts.length != 3) || (linkIdParts.length != 2))
+						continue;
+
+					String interfaceId = nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1];
+					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
+					pst.setString(1, interfaceId);
+					pst.setString(2, linkId);
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_node_interface` ( `id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
+					pst.setString(1, interfaceId);
+					pst.setString(2, selfRefPrefix + "interface/" + interfaceId);
+					pst.setString(3, NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", interfaceId));
+					pst.setString(4,  nodeId);
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("SET foreign_key_checks=1");
+					executeAndClose(pst);
+
+				}
+			}
+		} catch(SQLException se) {
+			throw new RuntimeException("Unable to insert into the database: " + se);
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Unable to add interface info: " + e);
+		} finally {
+			if (dbc != null)
+				try {
+					dbc.close();
+				} catch (SQLException e) {
+					throw new RuntimeException("Error closing mysql db connection: " + e);
+				}
+		}
+	}
+	
 	/**
 	 * Convert a DN into a URN (mostly for BEN credentials)
 	 * urn:publicid:IDN+ch.geni.net+user+ekishore
@@ -662,27 +693,6 @@ public class GENIWorker extends AbstractWorker {
 		}
 	}
 	
-	public static void main(String[] argv) {
-		GENIWorker gw = new GENIWorker();
-		
-		try {
-			gw.manifests = new HashMap<DocType, String>();
-
-			InputStream source = new FileInputStream(new File("/Users/ibaldin/workspace-pubsub/pubsub-daemon/scripts/manifests/test1.xml"));
-			String text = new Scanner( source ).useDelimiter("\\A").next();
-			gw.manifests.put(DocType.RSPEC_MANIFEST, text);
-			
-			source.close();
-			source = new FileInputStream(new File("/Users/ibaldin/workspace-pubsub/pubsub-daemon/scripts/manifests/test1.rdf"));
-			text = new Scanner( source ).useDelimiter("\\A").next();
-			gw.manifests.put(DocType.NDL_MANIFEST, text);
-			
-			gw.processManifest(gw.manifests, "URN:slice", "slice-guid", "slice-sm", "slice-sm-guid");
-		} catch(Exception e) {
-			System.err.println("Something went bad: " + e);
-			e.printStackTrace();
-		}
-	}
 	
 	/**
 	 * Populate ops_aggregate table
@@ -732,4 +742,27 @@ public class GENIWorker extends AbstractWorker {
 				}
 		}
 	}
+	
+	public static void main(String[] argv) {
+		GENIWorker gw = new GENIWorker();
+		
+		try {
+			gw.manifests = new HashMap<DocType, String>();
+
+			InputStream source = new FileInputStream(new File("/Users/ibaldin/Desktop/rspecman"));
+			String text = new Scanner( source ).useDelimiter("\\A").next();
+			gw.manifests.put(DocType.RSPEC_MANIFEST, text);
+			
+			source.close();
+			source = new FileInputStream(new File("/Users/ibaldin/Desktop/ndlman"));
+			text = new Scanner( source ).useDelimiter("\\A").next();
+			gw.manifests.put(DocType.NDL_MANIFEST, text);
+			
+			gw.processManifest(gw.manifests, "URN:slice", "slice-guid", "slice-sm", "slice-sm-guid");
+		} catch(Exception e) {
+			System.err.println("Something went bad: " + e);
+			e.printStackTrace();
+		}
+	}
+
 }
