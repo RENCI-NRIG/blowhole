@@ -469,6 +469,12 @@ public class GENIWorker extends AbstractWorker {
 				
 				// find geni_sliver_info, if available
 				if (((NodeList)xpath.compile(SLIVER_INFO_PATH).evaluate(nl.item(i), XPathConstants.NODESET)).getLength() > 0) {
+					String sliverState = xpath.compile(SLIVER_INFO_PATH + "/@state").evaluate(nl.item(i));
+					if (!"ready".equalsIgnoreCase(sliverState)) {
+						Globals.info("Sliver " + sliver_id + " is not ready, skipping for now");
+						continue;
+					}
+					
 					String creator = xpath.compile(SLIVER_INFO_PATH + "/@creator_urn").evaluate(nl.item(i));
 
 					URI creator_urn = null;
@@ -527,8 +533,8 @@ public class GENIWorker extends AbstractWorker {
 						
 						// update timestamp in ops_aggregate
 						String upstat = "UPDATE ops_aggregate SET ts=" + ts.getTime()*MS_TO_US + " WHERE id='" + getConfigProperty(GENI_SITE_PREFIX) + "vmsite'";
-						Globals.info("Update statement: [" + upstat + "]");
 						PreparedStatement pstup = dbc.prepareStatement(upstat);
+						Globals.debug("Updating ops_aggregaate: " + upstat);
 						executeAndClose(pstup);
 						
 						String query = null;
@@ -546,7 +552,7 @@ public class GENIWorker extends AbstractWorker {
 							break;
 						}
 						// insert into ops_sliver
-						Globals.debug("Inserting into ops_sliver");
+						Globals.debug("Inserting into ops_sliver for uuid " + sliver_id);
 						PreparedStatement pst1 = dbc.prepareStatement(query);
 						pst1.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "sliver#");
 						pst1.setString(2, sliver_id);
@@ -565,13 +571,22 @@ public class GENIWorker extends AbstractWorker {
 						executeAndClose(pst1);
 
 						// insert into ops_aggregate_sliver
-						Globals.debug("Inserting into ops_aggregate_sliver");
+						Globals.debug("Inserting into ops_aggregate_sliver for " + sliver_id);
 						PreparedStatement pst2 = dbc.prepareStatement("INSERT IGNORE INTO `ops_aggregate_sliver` ( `id` , `aggregate_id`, `urn` , `selfRef`) values (?, ?, ?, ?)");
 						pst2.setString(1, sliver_id);
 						pst2.setString(2, agg_id);
 						pst2.setString(3, sliver_urn.toString());
 						pst2.setString(4, sliver_href);
 						executeAndClose(pst2);
+						
+						// insert into ops_aggregate_resource
+						Globals.debug("Inserting into ops_aggregate_resource for " + sliver_id);
+						PreparedStatement pst3 = dbc.prepareStatement("INSERT IGNORE INTO `ops_aggregate_resource` ( `id` , `aggregate_id` , `urn` , `selfRef`) values (?, ?, ?, ?)");
+						pst3.setString(1, sliver_id);
+						pst3.setString(2, shortName);
+						pst3.setString(3, sliver_urn.toString());
+						pst3.setString(4, sliver_href);
+						executeAndClose(pst3);
 					}
 				} else 
 					Globals.error("Unable to find sliver_info in node " + nl.item(i));
@@ -618,7 +633,7 @@ public class GENIWorker extends AbstractWorker {
 					String nodeId = interfaceToNode.get(e.getKey());
 					String linkId = interfaceToLink.get(e.getKey());
 					if ((linkId == null) || (nodeId == null)) {
-						Globals.warn("Unable to insert interface " + e.getKey() + " info - manifest must still be incomplete, skipping");
+						Globals.warn("Unable to locate interface " + e.getKey() + " info - manifest must still be incomplete, skipping");
 						continue;
 					}
 					String[] nodeIdParts = nodeId.split(":");
