@@ -582,10 +582,10 @@ public class GENIWorker extends AbstractWorker {
 						// insert into ops_aggregate_resource
 						Globals.debug("Inserting into ops_aggregate_resource for " + sliver_id);
 						PreparedStatement pst3 = dbc.prepareStatement("INSERT IGNORE INTO `ops_aggregate_resource` ( `id` , `aggregate_id` , `urn` , `selfRef`) values (?, ?, ?, ?)");
-						pst3.setString(1, sliver_id);
+						pst3.setString(1, sliver_uuid + ":" + resource);
 						pst3.setString(2, shortName);
-						pst3.setString(3, sliver_urn.toString());
-						pst3.setString(4, sliver_href);
+						pst3.setString(3, resource_urn);
+						pst3.setString(4, nodeLink_href);
 						executeAndClose(pst3);
 					}
 				} else 
