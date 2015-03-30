@@ -608,6 +608,138 @@ public class GENIWorker extends AbstractWorker {
 		}
 	}
 
+	
+	private static final String TAP = "tap";
+	private static final String LINK = "link";
+	
+	// functions to generate interface/interfacevlan ids/urns/selfRefs consistently 
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceVlanId(String nodeId, String tag) {
+		String[] nodeIdParts = nodeId.split(":");
+		if (nodeIdParts.length == 3) 
+			return nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + tag;
+		else
+			return nodeIdParts[1] + ":" + tag;
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	String getInterfaceVlanUrn(String nodeId, String tag) {
+		return NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", getInterfaceVlanId(nodeId, tag));
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	String getInterfaceVlanSelfRef(String nodeId, String tag) {
+		return selfRefPrefix + "interface/" + getInterfaceVlanId(nodeId, tag);
+	}
+	
+	/**
+	 * for a tap interface
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceTapId(String nodeId, String tag) {
+		return getInterfaceVlanId(nodeId, tag) + ":"  + TAP;
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceTapUrn(String nodeId, String tag) {
+		return getInterfaceVlanUrn(nodeId, tag) + "+" + TAP;
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceTapSelfRef(String nodeId, String tag) {
+		return getInterfaceVlanSelfRef(nodeId, tag) + ":" + TAP;
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceVlanTapId(String nodeId, String tag) {
+		return getInterfaceTapId(nodeId, tag) + ":0"; 
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceVlanTapUrn(String nodeId, String tag) {
+		return getInterfaceTapUrn(nodeId, tag) + "+0";
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getInterfaceVlanTapSelfRef(String nodeId, String tag) {
+		return getInterfaceTapSelfRef(nodeId, tag) + ":0"; 
+	}
+	
+	
+	/** 
+	 * Generate fake link id
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getLinkId(String nodeId, String tag) {
+		return getInterfaceVlanId(nodeId, tag) + ":" + LINK;
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getLinkUrn(String nodeId, String tag) {
+		return NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "link").replaceAll("%", getLinkId(nodeId, tag));
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @return
+	 */
+	private String getLinkSelfRef(String nodeId, String tag) {
+		return selfRefPrefix + "link/" + getLinkId(nodeId, tag);
+	}
+	
+	// because of how ridiculous the measurement schema is, here we
+	// create a bunch of fake interfaces and links just to stay consistent.
 	private void insertInterfaceInfo() {
 //		System.out.println("interface to node map");
 //		for(Map.Entry<String, String> e: interfaceToNode.entrySet()) {
@@ -636,24 +768,82 @@ public class GENIWorker extends AbstractWorker {
 						Globals.warn("Unable to locate interface " + e.getKey() + " info - manifest must still be incomplete, skipping");
 						continue;
 					}
-					String[] nodeIdParts = nodeId.split(":");
+					// nodeID is resId:worker:vm-guid or resId:worker 
+					//String[] nodeIdParts = nodeId.split(":");
 					String[] linkIdParts = linkId.split(":");
-					if ((nodeIdParts.length != 3) || (linkIdParts.length != 2))
-						continue;
-
-					String interfaceId = nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + linkIdParts[1];
+					String sTag = linkIdParts[1];
+					Long tag = Long.parseLong(sTag);
+					
 					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
 					executeAndClose(pst);
+					
+					// put in the interfacevlan worker:guid:tag or worker:tag
+					// linking to parent interface is done in external monitoring code
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`)");
+					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
+					pst.setString(2, getInterfaceVlanId(nodeId, sTag));
+					pst.setString(3, getInterfaceVlanSelfRef(nodeId, sTag));
+					pst.setString(4, getInterfaceVlanUrn(nodeId, sTag));
+					Date ts = new Date();
+					pst.setLong(5, ts.getTime()*MS_TO_US);
+					pst.setLong(6, tag);
+					executeAndClose(pst);
+					
+					// put in the derived interface worker:guid:tag:tap 
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interface` ( `$schema`, `id`, `selfRef`, `urn`, `ts`)");
+					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
+					pst.setString(2, getInterfaceTapId(nodeId, sTag));
+					pst.setString(3, getInterfaceTapSelfRef(nodeId, sTag));
+					pst.setString(4, getInterfaceTapUrn(nodeId, sTag));
+					pst.setLong(5, ts.getTime()*MS_TO_US);
+					executeAndClose(pst);
+					
+					// put in the derived interfacevlan worker:guid:tag:tap:0 and associate with derived interface worker:guid:tag:tap
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`, `interface_urn`, `interface_href`)");
+					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
+					pst.setString(2, getInterfaceVlanTapId(nodeId, sTag));
+					pst.setString(3, getInterfaceVlanTapSelfRef(nodeId, sTag));
+					pst.setString(4, getInterfaceVlanTapUrn(nodeId, sTag));
+					pst.setLong(5, ts.getTime()*MS_TO_US);
+					pst.setLong(6, 0);
+					pst.setString(7, getInterfaceTapUrn(nodeId, sTag));
+					pst.setString(8, getInterfaceTapSelfRef(nodeId, sTag));
+					executeAndClose(pst);
+					
+					// put in a link between worker:guid:tag and worker:guid:tag:tap0
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
+							" values (?, ?, ?, ?, ?)");
+					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "link#");
+					pst.setString(2, getLinkId(nodeId, sTag));
+					pst.setString(3, getLinkSelfRef(nodeId, sTag));
+					pst.setString(4, getLinkUrn(nodeId, sTag));
+					pst.setLong(5, ts.getTime()*MS_TO_US);
+					executeAndClose(pst);
+					
+					// associate link with interfacevlans worker:guid:tag and worker:guid:tag:tap:0
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
-					pst.setString(1, interfaceId);
+					pst.setString(1, getInterfaceVlanTapId(nodeId, sTag));
+					pst.setString(2, getLinkId(nodeId, sTag));
+					executeAndClose(pst);
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
+					pst.setString(1, getInterfaceVlanId(nodeId, sTag));
+					pst.setString(2, getLinkId(nodeId, sTag));
+					executeAndClose(pst);
+					
+					// associate interfacevlan worker:guid:tag and link in slice
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
+					pst.setString(1, getInterfaceVlanId(nodeId, sTag));
 					pst.setString(2, linkId);
 					executeAndClose(pst);
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_node_interface` ( `id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
-					pst.setString(1, interfaceId);
-					pst.setString(2, selfRefPrefix + "interface/" + interfaceId);
-					pst.setString(3, NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", interfaceId));
+
+					// associate interface worker:guid:tag:tap with node
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_node_interface` (`id`, `urn`, `selfRef`, `node_id` ) values (?, ?, ?, ?)");
+					pst.setString(1, getInterfaceTapId(nodeId, sTag));
+					pst.setString(2, getInterfaceTapUrn(nodeId, sTag));
+					pst.setString(3, getInterfaceTapSelfRef(nodeId, sTag));
 					pst.setString(4,  nodeId);
 					executeAndClose(pst);
+					
 					pst = dbc.prepareStatement("SET foreign_key_checks=1");
 					executeAndClose(pst);
 
