@@ -715,7 +715,7 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceVlanTapSelfRef(String nodeId, String tag) {
-		return getInterfaceVlanSelfRef(nodeId, tag) + ":TAP:0"; 
+		return getInterfaceVlanSelfRef(nodeId, tag) + ":" + TAP + ":0";
 	}
 	
 	
