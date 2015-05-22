@@ -641,10 +641,21 @@ public class GENIWorker extends AbstractWorker {
 	 * 
 	 * @param nodeId
 	 * @param tag
+	 * @param suffix
+	 * @return
+	 */
+	String getInterfaceSelfRef(String nodeId, String tag) {
+		return selfRefPrefix + "interface/" + getInterfaceVlanId(nodeId, tag);
+	}
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
 	 * @return
 	 */
 	String getInterfaceVlanSelfRef(String nodeId, String tag) {
-		return selfRefPrefix + "interface/" + getInterfaceVlanId(nodeId, tag);
+		return selfRefPrefix + "interfacevlan/" + getInterfaceVlanId(nodeId, tag);
 	}
 	
 	/**
@@ -674,7 +685,7 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceTapSelfRef(String nodeId, String tag) {
-		return getInterfaceVlanSelfRef(nodeId, tag) + ":" + TAP;
+		return getInterfaceSelfRef(nodeId, tag) + ":" + TAP;
 	}
 	
 	/**
@@ -704,7 +715,7 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceVlanTapSelfRef(String nodeId, String tag) {
-		return getInterfaceTapSelfRef(nodeId, tag) + ":0"; 
+		return getInterfaceVlanSelfRef(nodeId, tag) + ":TAP:0"; 
 	}
 	
 	
@@ -780,7 +791,7 @@ public class GENIWorker extends AbstractWorker {
 					// put in the interfacevlan worker:guid:tag or worker:tag
 					// linking to parent interface is done in external monitoring code
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`) values (?, ?, ?, ?, ?, ?)");
-					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
+					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interfacevlan#");
 					pst.setString(2, getInterfaceVlanId(nodeId, sTag));
 					pst.setString(3, getInterfaceVlanSelfRef(nodeId, sTag));
 					pst.setString(4, getInterfaceVlanUrn(nodeId, sTag));
@@ -800,7 +811,7 @@ public class GENIWorker extends AbstractWorker {
 					
 					// put in the derived interfacevlan worker:guid:tag:tap:0 and associate with derived interface worker:guid:tag:tap
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`, `interface_urn`, `interface_href`) values (?, ?, ?, ?, ?, ?, ?, ?)");
-					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
+					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interfacevlan#");
 					pst.setString(2, getInterfaceVlanTapId(nodeId, sTag));
 					pst.setString(3, getInterfaceVlanTapSelfRef(nodeId, sTag));
 					pst.setString(4, getInterfaceVlanTapUrn(nodeId, sTag));
