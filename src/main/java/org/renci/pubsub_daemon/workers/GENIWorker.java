@@ -779,7 +779,7 @@ public class GENIWorker extends AbstractWorker {
 					
 					// put in the interfacevlan worker:guid:tag or worker:tag
 					// linking to parent interface is done in external monitoring code
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`)");
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`) values (?, ?, ?, ?, ?, ?)");
 					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
 					pst.setString(2, getInterfaceVlanId(nodeId, sTag));
 					pst.setString(3, getInterfaceVlanSelfRef(nodeId, sTag));
@@ -790,7 +790,7 @@ public class GENIWorker extends AbstractWorker {
 					executeAndClose(pst);
 					
 					// put in the derived interface worker:guid:tag:tap 
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interface` ( `$schema`, `id`, `selfRef`, `urn`, `ts`)");
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interface` ( `$schema`, `id`, `selfRef`, `urn`, `ts`) values (?, ?, ?, ?, ?)");
 					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
 					pst.setString(2, getInterfaceTapId(nodeId, sTag));
 					pst.setString(3, getInterfaceTapSelfRef(nodeId, sTag));
@@ -799,7 +799,7 @@ public class GENIWorker extends AbstractWorker {
 					executeAndClose(pst);
 					
 					// put in the derived interfacevlan worker:guid:tag:tap:0 and associate with derived interface worker:guid:tag:tap
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`, `interface_urn`, `interface_href`)");
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`, `interface_urn`, `interface_href`) values (?, ?, ?, ?, ?, ?, ?, ?)");
 					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interface#");
 					pst.setString(2, getInterfaceVlanTapId(nodeId, sTag));
 					pst.setString(3, getInterfaceVlanTapSelfRef(nodeId, sTag));
@@ -811,8 +811,7 @@ public class GENIWorker extends AbstractWorker {
 					executeAndClose(pst);
 					
 					// put in a link between worker:guid:tag and worker:guid:tag:tap0
-					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` )" + 
-							" values (?, ?, ?, ?, ?)");
+					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link` ( `$schema` , `id` , `selfRef` , `urn` , `ts` ) values (?, ?, ?, ?, ?)");
 					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "link#");
 					pst.setString(2, getLinkId(nodeId, sTag));
 					pst.setString(3, getLinkSelfRef(nodeId, sTag));
@@ -825,6 +824,7 @@ public class GENIWorker extends AbstractWorker {
 					pst.setString(1, getInterfaceVlanTapId(nodeId, sTag));
 					pst.setString(2, getLinkId(nodeId, sTag));
 					executeAndClose(pst);
+					
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
 					pst.setString(1, getInterfaceVlanId(nodeId, sTag));
 					pst.setString(2, getLinkId(nodeId, sTag));
