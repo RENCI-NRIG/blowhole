@@ -1,11 +1,26 @@
-The pubsub_daemon (aka 'blowhole') subscribes to a number of slice lists on an indicated
+OVERVIEW
+
+Blowhole subscribes to a number of slice lists on an indicated
 XMPP server (using provided credentials) and listens for the events on the slice manifests
 and slice lists. When slice state is updated (its manifest is republished) a generated event
-tells the software to read the manifest, convert it to RSpec (from NDL) and then push it to
-a pre-configured URL (file or http). 
+tells the software to invoke one or more of the included plugin 'workers' to process the manifest. 
 
-With an http url, the software does HTTP PUT. With file URL it writes the manifest to a file
-in a file indicated by the URL (except the file name has '-' and slice urn appended to it).
+The workers are: 
+
+1. GMOCWorker (obsoleted now)
+
+With an http url, the worker converts manifest to RSpec and does HTTP PUT. With file URL it writes 
+the manifest to a file in a file indicated by the URL (except the file name has '-' and slice urn appended to it).
+
+2. XODbWorker
+
+Saves slice information into the central ExoGENI database
+
+3. GENIWorker
+
+Parses the manifest (as RSpec and raw NDL) and populates the monitoring database
+
+BUILDING
 
 The easy way to build (needs maven):
 
@@ -35,6 +50,8 @@ java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci
 
 To stop use Ctrl-C (note that it may take a few seconds to cancel active subscriptions).
 
+TOOLS
+
 ---- Listing nodes in pubsub space 
 
 To list all nodes, if you built it using 'mvn clean package', then simply
@@ -53,7 +70,7 @@ $ sh target/appassembler/bin/deleteNodes
 Blowhole can save all slices into a MySQL database. The schema is xoschema.sql. You need to provide three properties
 DB.url, DB.user and DB.password for blowhole to start saving slices into the db.
 
----- FOR PACKAGERS -----
+FOR PACKAGERS
 
 $ mvn clean package
 
