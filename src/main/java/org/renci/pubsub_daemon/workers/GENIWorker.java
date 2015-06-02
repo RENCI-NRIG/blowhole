@@ -614,17 +614,44 @@ public class GENIWorker extends AbstractWorker {
 	
 	// functions to generate interface/interfacevlan ids/urns/selfRefs consistently 
 	/**
+	 * This strips off the sliver UUID from the typical sliver uuid:worker:vm guid node id (or sliver uuid:worker for bare-metal)
+	 * and appends the VLAN tag
+	 * @param nodeId
+	 * @param tag
+	 * @param withGuid - use VM guid or not
+	 * @return
+	 */
+	private String getInterfaceVlanIdStub(String nodeId, String tag, boolean withGuid) {
+		String[] nodeIdParts = nodeId.split(":");
+		if ((nodeIdParts.length == 3) && withGuid) 
+			return nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + tag;
+		else
+			return nodeIdParts[1] + ":" + tag;
+	}
+	
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @param tag
+	 * @param withGuid
+	 * @return
+	 */
+	String getInterfaceSelfRef(String nodeId, String tag, boolean withGuid) {
+		return selfRefPrefix + "interface/" + getInterfaceVlanIdStub(nodeId, tag, withGuid);
+	}
+	
+	/*
+	 * InterfaceVlan ID, URN and SelfRef (worker:tag)
+	 */
+	/**
 	 * 
 	 * @param nodeId
 	 * @param tag
 	 * @return
 	 */
 	private String getInterfaceVlanId(String nodeId, String tag) {
-		String[] nodeIdParts = nodeId.split(":");
-		if (nodeIdParts.length == 3) 
-			return nodeIdParts[1] + ":" + nodeIdParts[2] + ":" + tag;
-		else
-			return nodeIdParts[1] + ":" + tag;
+		return getInterfaceVlanIdStub(nodeId, tag, false);
 	}
 	
 	/**
@@ -641,23 +668,15 @@ public class GENIWorker extends AbstractWorker {
 	 * 
 	 * @param nodeId
 	 * @param tag
-	 * @param suffix
-	 * @return
-	 */
-	String getInterfaceSelfRef(String nodeId, String tag) {
-		return selfRefPrefix + "interface/" + getInterfaceVlanId(nodeId, tag);
-	}
-	
-	/**
-	 * 
-	 * @param nodeId
-	 * @param tag
 	 * @return
 	 */
 	String getInterfaceVlanSelfRef(String nodeId, String tag) {
 		return selfRefPrefix + "interfacevlan/" + getInterfaceVlanId(nodeId, tag);
 	}
-	
+
+	/*
+	 * Interface Tap ID, URN and SelfRef (worker:guid:tag:tap)
+	 */
 	/**
 	 * for a tap interface
 	 * @param nodeId
@@ -665,7 +684,7 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceTapId(String nodeId, String tag) {
-		return getInterfaceVlanId(nodeId, tag) + ":"  + TAP;
+		return getInterfaceVlanIdStub(nodeId, tag, true) + ":"  + TAP;
 	}
 	
 	/**
@@ -675,7 +694,7 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceTapUrn(String nodeId, String tag) {
-		return getInterfaceVlanUrn(nodeId, tag) + "+" + TAP;
+		return NdlToRSpecHelper.SLIVER_URN_PATTERN.replaceAll("@", nodeToAggregate.get(nodeId)).replaceAll("\\^", "interface").replaceAll("%", getInterfaceVlanIdStub(nodeId, tag, true)) + "+" + TAP;
 	}
 	
 	/**
@@ -685,9 +704,12 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceTapSelfRef(String nodeId, String tag) {
-		return getInterfaceSelfRef(nodeId, tag) + ":" + TAP;
+		return getInterfaceSelfRef(nodeId, tag, true) + ":" + TAP;
 	}
 	
+	/*
+	 * IntervaceVlan tap ID, URN and SelfRef (worker:guid:tag:tap:0)
+	 */
 	/**
 	 * 
 	 * @param nodeId
@@ -715,10 +737,12 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getInterfaceVlanTapSelfRef(String nodeId, String tag) {
-		return getInterfaceVlanSelfRef(nodeId, tag) + ":" + TAP + ":0";
+		return getInterfaceTapSelfRef(nodeId, tag) + ":0";
 	}
 	
-	
+	/*
+	 * Link between worker:tag and worker:guid:tag:tap:0 ID, URN, SelfRef (worker:guid:tag:link)
+	 */
 	/** 
 	 * Generate fake link id
 	 * @param nodeId
@@ -726,7 +750,7 @@ public class GENIWorker extends AbstractWorker {
 	 * @return
 	 */
 	private String getLinkId(String nodeId, String tag) {
-		return getInterfaceVlanId(nodeId, tag) + ":" + LINK;
+		return getInterfaceVlanIdStub(nodeId, tag, true) + ":" + LINK;
 	}
 	
 	/**
@@ -788,7 +812,7 @@ public class GENIWorker extends AbstractWorker {
 					PreparedStatement pst = dbc.prepareStatement("SET foreign_key_checks=0");
 					executeAndClose(pst);
 					
-					// put in the interfacevlan worker:guid:tag or worker:tag
+					// put in the interfacevlan worker:tag 
 					// linking to parent interface is done in external monitoring code
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_interfacevlan` ( `$schema`, `id`, `selfRef`, `urn`, `ts`, `tag`) values (?, ?, ?, ?, ?, ?)");
 					pst.setString(1, getConfigProperty(GENI_SCHEMA_PREFIX_PROPERTY) + "interfacevlan#");
@@ -830,7 +854,7 @@ public class GENIWorker extends AbstractWorker {
 					pst.setLong(5, ts.getTime()*MS_TO_US);
 					executeAndClose(pst);
 					
-					// associate link with interfacevlans worker:guid:tag and worker:guid:tag:tap:0
+					// associate link with interfacevlans worker:tag and worker:guid:tag:tap:0
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
 					pst.setString(1, getInterfaceVlanTapId(nodeId, sTag));
 					pst.setString(2, getLinkId(nodeId, sTag));
@@ -841,7 +865,7 @@ public class GENIWorker extends AbstractWorker {
 					pst.setString(2, getLinkId(nodeId, sTag));
 					executeAndClose(pst);
 					
-					// associate interfacevlan worker:guid:tag and link in slice
+					// associate interfacevlan worker:tag and link in slice
 					pst = dbc.prepareStatement("INSERT IGNORE INTO `ops_link_interfacevlan` ( `id` , `link_id` ) values (?, ?)");
 					pst.setString(1, getInterfaceVlanId(nodeId, sTag));
 					pst.setString(2, linkId);
