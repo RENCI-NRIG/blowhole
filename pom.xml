@@ -33,8 +33,9 @@
 	</repositories>
 
 	<scm>
-		<connection>scm:svn:https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/trunk</connection>
-		<url>https://geni-orca.renci.org/svn/orca-external/pubsub-daemon/</url>
+		<developerConnection>scm:git:git@github.com:RENCI-NRIG/blowhole.git</developerConnection>
+		<connection>scm:git:git@github.com:RENCI-NRIG/blowhole.git</connection>
+		<url>https://github.com/RENCI-NRIG/blowhole</url>
 	</scm>
 	<organization>
 		<name>RENCI</name>
