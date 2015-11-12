@@ -25,7 +25,7 @@ CREATE TABLE `xoslices` (
   `slice_name` varchar(255) NOT NULL,
   `slice_guid` varchar(255) NOT NULL,
   `slice_owner` varchar(255) NOT NULL,
-  `slice_manifest` largetext,
+  `slice_manifest` longtext,
   `slice_manifest_type` varchar(255) DEFAULT NULL,
   `slice_sm` varchar(255) NOT NULL DEFAULT '',
   PRIMARY KEY (`slice_guid`,`slice_sm`),
