@@ -75,7 +75,7 @@ public class DecodeManifest {
 
 	public static void main(String argv[]) {
 		if (argv.length != 2) {
-			System.err.println("Usage: decompress  <compressed manifest> -|<uncompressed manifest>");
+			System.err.println("Usage: decompress  <compressed manifest> <uncompressed manifest>");
 			System.exit(1);
 		}
 

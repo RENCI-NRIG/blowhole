@@ -60,6 +60,30 @@ public class XODbWorker extends AbstractWorker {
 		insertInDb();
 	}
 
+	private void updateRow(NDLManifestParser parser, Connection dbc) throws SQLException {
+		// update the row
+		Globals.debug("Updating row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
+		PreparedStatement pst1 = dbc.prepareStatement("UPDATE `xoslices` SET slice_manifest=? WHERE slice_guid=? AND slice_sm=?");
+		pst1.setString(1, manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
+		pst1.setString(2, parser.getSliceUuid());
+		pst1.setString(3, sliceSmName);
+		executeAndClose(pst1);
+	}
+	
+	private void insertRow(NDLManifestParser parser, Connection dbc) throws SQLException {
+		// insert new row
+		Globals.debug("Inserting new row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
+		PreparedStatement pst1 = dbc.prepareStatement("INSERT into `xoslices` ( `slice_name` , `slice_guid` , `slice_owner`, `slice_manifest`, " + 
+				"`slice_manifest_type`, `slice_sm`) values (?, ?, ?, ?, ?, ?)");
+		pst1.setString(1, parser.getSliceUrn());
+		pst1.setString(2, parser.getSliceUuid());
+		pst1.setString(3, parser.getCreatorUrn());
+		pst1.setString(4, manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
+		pst1.setString(5, ManifestTypes.GZIPPED_ENCODED_NDL.name);
+		pst1.setString(6, sliceSmName);
+		executeAndClose(pst1);
+	}
+	
 	/**
 	 * Insert the compressed version of the manifest into db. Do minimal parsing of the manifest.
 	 */
@@ -79,26 +103,10 @@ public class XODbWorker extends AbstractWorker {
 				pst.setString(1, parser.getSliceUuid());
 				pst.setString(2, sliceSmName);
 				ResultSet rs = pst.executeQuery();
-				if(rs.next()) {
-					// update the row
-					Globals.debug("Updating row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
-					PreparedStatement pst1 = dbc.prepareStatement("UPDATE `xoslices` SET slice_manifest=? WHERE slice_guid=? AND slice_sm=?");
-					pst1.setString(1, manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
-					pst1.setString(2, parser.getSliceUuid());
-					pst1.setString(3, sliceSmName);
-					executeAndClose(pst1);
+				if (rs.next()) {
+					updateRow(parser, dbc);
 				} else {
-					// insert new row
-					Globals.debug("Inserting new row for slice " + parser.getSliceUrn() + " / " + parser.getSliceUuid());
-					PreparedStatement pst1 = dbc.prepareStatement("INSERT into `xoslices` ( `slice_name` , `slice_guid` , `slice_owner`, `slice_manifest`, " + 
-							"`slice_manifest_type`, `slice_sm`) values (?, ?, ?, ?, ?, ?)");
-					pst1.setString(1, parser.getSliceUrn());
-					pst1.setString(2, parser.getSliceUuid());
-					pst1.setString(3, parser.getCreatorUrn());
-					pst1.setString(4, manifests.get(DocType.COMPRESSED_NDL_MANIFEST));
-					pst1.setString(5, ManifestTypes.GZIPPED_ENCODED_NDL.name);
-					pst1.setString(6, sliceSmName);
-					executeAndClose(pst1);
+					insertRow(parser, dbc);
 				}
 				rs.close();
 				pst.close();
