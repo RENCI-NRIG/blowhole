@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -308,4 +309,22 @@ public class Globals {
     public IMultiFormatConverter getInternalConverter() {
     	return internalConverter;
     }
+    
+
+	// list nodes of interest 
+	public static List<String> getSMNodeList(Set<String> smsOfInterest) {
+		List<String> ret = new ArrayList<String>();
+		
+		List<String> pubNodes = Globals.getInstance().getXMPP().listAllNodes();
+		
+		for (String n: pubNodes) {
+			//logger.info("Found node " + n);
+			for (String sm: smsOfInterest) {
+				if (n.matches(ManifestSubscriber.ORCA_SM_PREFIX + sm + ManifestSubscriber.ORCA_SM_SLICE_LIST_SUFFIX))
+					ret.add(n);
+			}
+		}
+		
+		return ret;
+	}
 }

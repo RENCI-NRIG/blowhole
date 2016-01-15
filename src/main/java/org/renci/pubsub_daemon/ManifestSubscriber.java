@@ -38,8 +38,8 @@ import org.renci.xmpp_pubsub.XMPPPubSub;
  */
 public class ManifestSubscriber implements IPubSubReconnectCallback {
 	public static final String buildVersion = "Blowhole " + ManifestSubscriber.class.getPackage().getImplementationVersion();
-	private static final String ORCA_SM_SLICE_LIST_SUFFIX = ".+sliceList";
-	private static final String ORCA_SM_PREFIX = "/orca/sm/";
+	public static final String ORCA_SM_SLICE_LIST_SUFFIX = ".+sliceList";
+	public static final String ORCA_SM_PREFIX = "/orca/sm/";
 
 	private static final String PUBSUB_SUBSCRIBER_RESOURCE = "GMOC-Subscriber";
 	public static final String PREF_FILE = ".xmpp.properties";
@@ -62,6 +62,8 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 	private static final String PUBSUB_KEYSTORE_PASS = PUBSUB_PROP_PREFIX + ".keystorepass";
 	// Note truststore password would be read from the GMOC.pubsub.password property when using certificates
 
+	Set<String> smsOfInterest = null;
+	
 	static XPath xp;
 
 	protected Properties prefProperties = null;
@@ -143,10 +145,28 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		
 		Globals.getInstance().setXMPP(xmpp);
 		
-		// get the list of nodes that list manifests
-		List<String> smNodes = getSMNodeList();
+		// determine which SMs we will be subscribing to
+		String smPropVal = prefProperties.getProperty(PUBSUB_SMS_PROP);
 		
+		if ((smPropVal == null) || (smPropVal.length() == 0)){
+			// include everything
+			logger.error(PUBSUB_SMS_PROP + " not specifiedor empty, unable to subscribe");
+			System.exit(1);
+		} 
+		
+		smsOfInterest = new HashSet<String>();
+
+		for(String s: smPropVal.split(",")) {
+			smsOfInterest.add(s.trim());
+		}
+		
+		// get the list of nodes that list manifests now (possible that SM
+		// has listed nothing so far)
+		List<String> smNodes = Globals.getSMNodeList(smsOfInterest);
+		
+		// collect successfully subscribed ones
 		List<String> missingNodes = new ArrayList<String>();
+
 		Globals.info("Subscribing to known SM manifest lists");
 		for (String smListNode: smNodes) {
 			logger.info("  " + smListNode);
@@ -161,7 +181,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		}		
 		rst = new ResubscribeThread(Globals.getInstance().getSliceListener(), Globals.getInstance().getManifestListener());
 		
-		rst.updateSliceList(missingNodes);
+		rst.updateSliceList(smsOfInterest, missingNodes);
 		addShutDownHandler();
 		sem.release();
 		
@@ -327,38 +347,6 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 
 		return xps;
 	}
-
-	// list nodes of interest 
-	private List<String> getSMNodeList() {
-		List<String> ret = new ArrayList<String>();
-		
-		String smPropVal = prefProperties.getProperty(PUBSUB_SMS_PROP);
-		
-		if (smPropVal == null) {
-			// include everything
-			Globals.warn(PUBSUB_SMS_PROP + " not specified, will subscribe to ALL SMs found on this server.");
-			smPropVal = "";
-		} else if (smPropVal.length() == 0)
-			Globals.warn(PUBSUB_SMS_PROP + " is empty, will subscribe to ALL SMs found on this server.");
-		
-		Set<String> smsOfInterest = new HashSet<String>();
-
-		for(String s: smPropVal.split(",")) {
-			smsOfInterest.add(s.trim());
-		}
-		
-		List<String> pubNodes = Globals.getInstance().getXMPP().listAllNodes();
-		
-		for (String n: pubNodes) {
-			//logger.info("Found node " + n);
-			for (String sm: smsOfInterest) {
-				if (n.matches(ORCA_SM_PREFIX + sm + ORCA_SM_SLICE_LIST_SUFFIX))
-					ret.add(n);
-			}
-		}
-		
-		return ret;
-	}
 	
 	private void unsubscribeAll(List<String> save) {
 		Globals.info("Unsubscribing from all slice lists");
@@ -413,7 +401,7 @@ public class ManifestSubscriber implements IPubSubReconnectCallback {
 		Globals.getInstance().getSliceListener().unsubscribeAll(manifestNodes);
 		
 		// tell resubscription thread
-		rst.updateSliceList(listNodes);
+		rst.updateSliceList(smsOfInterest, listNodes);
 	}
 	
 	public static void main(String[] args) {

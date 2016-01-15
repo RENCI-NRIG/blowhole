@@ -16,6 +16,7 @@ import org.renci.pubsub_daemon.ManifestSubscriber.SubscriptionPair;
 public class ResubscribeThread extends TimerTask {
 	private SliceListEventListener sll;
 	private ManifestEventListener ml;
+	private Set<String> smsOfInterest = new HashSet<String>();
 	private Set<String> remainingSliceLists = new HashSet<String>();
 	private Set<String> remainingManifests = new HashSet<String>();
 	
@@ -28,9 +29,20 @@ public class ResubscribeThread extends TimerTask {
 	public void run() {
 		// go through the sets and try to resubscribe
 		
-		// for now only slice lists
+		Globals.info("Getting updated list of available SM slice lists");
+		List<String> newSmNodes = Globals.getSMNodeList(smsOfInterest);
+		remainingSliceLists.addAll(newSmNodes);
+		
+		// filter out known subscriptions
+		Set<SubscriptionPair> subs = Globals.getInstance().getSubscriptions();
+		for(SubscriptionPair sub: subs) {
+			remainingSliceLists.remove(sub.node);
+		}
+		
+		// try to subscribe
 		List<String> success = new ArrayList<String>();
 		Globals.info("Trying to (re)subscribe to slice lists: ");
+		
 		for(String smListNode:remainingSliceLists) {
 			Globals.info("  " + smListNode);
 			SubscriptionPair sp = new SubscriptionPair(smListNode, 
@@ -42,20 +54,18 @@ public class ResubscribeThread extends TimerTask {
 			} else 
 				Globals.info("  UNABLE, will try again later!");
 		}
-		for (String s: success) {
-			remainingSliceLists.remove(s);
-		}
+		remainingSliceLists.removeAll(success);
 	}
 
-	public synchronized void updateSliceList(final List<String> lst) {
-		if (lst == null) {
+	public synchronized void updateSliceList(final Set<String> sms, final List<String> missing) {
+		Globals.info("Adding SMs of interest: " + sms);
+		smsOfInterest.addAll(sms);
+		if (missing == null) {
 			remainingSliceLists.clear();
 			return;
 		}
-		for(String n: lst) {
-			Globals.info("Adding slice list " + n + " for later attempts");
-			remainingSliceLists.add(n);
-		}
+		Globals.info("Adding slice list for later attempts: " + missing);
+		remainingSliceLists.addAll(missing);
 	}
 	
 	public synchronized void updateManifestList(final List<String> lst) {
