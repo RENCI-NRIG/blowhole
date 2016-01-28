@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  
+    <script type="text/javascript" src="lib/javascriptrrd-1.1.1/src/lib/javascriptrrd.wlibs.js"></script>
+  <head>
+    <title>ExoGENI Usage Statistics</title>
+  </head>
+
+  <body>
+    <h1 id="title">ExoGENI Usage Statistics</h1>
+
+    <h3>ExoSM</h3>
+
+    <div id="exograph"></div>
+
+    <hr>
+
+    <h3>Rack SMs</h3>
+
+    <div id="rootsm">
+    <div id="smleft" style="float:left;vertical-align:middle;">
+    <fieldset>
+      <input type="radio" name="smradio" value="rrd/bbn-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);" checked >BBN</input></br>
+      <input type="radio" name="smradio" value="rrd/ciena-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">CIENA</input></br>
+      <input type="radio" name="smradio" value="rrd/fiu-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">FIU</input></br>
+      <input type="radio" name="smradio" value="rrd/gwu-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">GWU</input></br>
+      <input type="radio" name="smradio" value="rrd/sl-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">SL</input></br>
+      <input type="radio" name="smradio" value="rrd/nicta-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">NICTA</input></br>
+      <input type="radio" name="smradio" value="rrd/osf-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">OSF</input></br>
+      <input type="radio" name="smradio" value="rrd/psc-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">PSC</input></br>
+      <input type="radio" name="smradio" value="rrd/rci-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">RCI</input></br>
+      <input type="radio" name="smradio" value="rrd/tamu-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">TAMU</input></br>
+      <input type="radio" name="smradio" value="rrd/ucd-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">UCD</input></br>
+      <input type="radio" name="smradio" value="rrd/ufl-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">UFL</input></br>
+      <input type="radio" name="smradio" value="rrd/uh-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">UH</input></br>
+      <input type="radio" name="smradio" value="rrd/umass-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">UMass Amherst</input></br>
+      <input type="radio" name="smradio" value="rrd/wsu-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">WSU</input></br>
+      <input type="radio" name="smradio" value="rrd/wvn-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">WVNet</input></br>
+      <input type="radio" name="smradio" value="rrd/uaf-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">UAF</input></br>
+      <input type="radio" name="smradio" value="rrd/uvanl-sm.rrd" onclick="fname_update('smradio', sm_flot_obj);">UvA Amsterdam</input></br>
+      <legend>Select the SM</legend>
+    </fieldset>
+    </div>
+
+    <div id="smgraph"></div>
+    </div>
+
+    <hr>
+
+    <h3>Individual Rack AMs (shows resources allocated by ExoSM and rack SMs)</h3>
+
+    <div id="rootam">
+    <div id="amleft" style="float:left;vertical-align:middle;" >
+    <fieldset>
+      <input type="radio" name="amradio" value="rrd/bbn-am.rrd" onclick="fname_update('amradio', am_flot_obj);" checked >BBN</input></br>
+      <input type="radio" name="amradio" value="rrd/ciena-am.rrd" onclick="fname_update('amradio', am_flot_obj);">CIENA</input></br>
+      <input type="radio" name="amradio" value="rrd/fiu-am.rrd" onclick="fname_update('amradio', am_flot_obj);">FIU</input></br>
+      <input type="radio" name="amradio" value="rrd/gwu-am.rrd" onclick="fname_update('amradio', am_flot_obj);">GWU</input></br>
+      <input type="radio" name="amradio" value="rrd/sl-am.rrd" onclick="fname_update('amradio', am_flot_obj);">SL</input></br>
+      <input type="radio" name="amradio" value="rrd/nicta-am.rrd" onclick="fname_update('amradio', am_flot_obj);">NICTA</input></br>
+      <input type="radio" name="amradio" value="rrd/osf-am.rrd" onclick="fname_update('amradio', am_flot_obj);">OSF</input></br>
+      <input type="radio" name="amradio" value="rrd/psc-am.rrd" onclick="fname_update('amradio', am_flot_obj);">PSC</input></br>
+      <input type="radio" name="amradio" value="rrd/rci-am.rrd" onclick="fname_update('amradio', am_flot_obj);">RCI</input></br>
+      <input type="radio" name="amradio" value="rrd/tamu-am.rrd" onclick="fname_update('amradio', am_flot_obj);">TAMU</input></br>
+      <input type="radio" name="amradio" value="rrd/ucd-am.rrd" onclick="fname_update('amradio', am_flot_obj);">UCD</input></br>
+      <input type="radio" name="amradio" value="rrd/ufl-am.rrd" onclick="fname_update('amradio', am_flot_obj);">UFL</input></br>
+      <input type="radio" name="amradio" value="rrd/uh-am.rrd" onclick="fname_update('amradio', am_flot_obj);">UH</input></br>
+      <input type="radio" name="amradio" value="rrd/umass-am.rrd" onclick="fname_update('amradio', am_flot_obj);">UMass Amherst</input></br>
+      <input type="radio" name="amradio" value="rrd/wsu-am.rrd" onclick="fname_update('amradio', am_flot_obj);">WSU</input></br>
+      <input type="radio" name="amradio" value="rrd/wvn-am.rrd" onclick="fname_update('amradio', am_flot_obj);">WVNet</input></br>
+      <input type="radio" name="amradio" value="rrd/uaf-am.rrd" onclick="fname_update('amradio', am_flot_obj);">UAF</input></br>
+      <input type="radio" name="amradio" value="rrd/uvanl-am.rrd" onclick="fname_update('amradio', am_flot_obj);">UvA Amsterdam</input></br>
+      <legend>Select the SM</legend>
+    </fieldset>
+    </div>
+
+    <div id="amgraph"></div>
+    </div>
+
+    <hr>
+
+    <script type="text/javascript">
+
+      var exo_graph_opts={legend: { noColumns:4, position: "nw"}};
+
+      var exo_ds_graph_opts={'vm':{ color: "#0000FF", title: 'VMs'},
+			 'bm':{ color: "#00FF00", title: 'Bare-metal nodes'},
+			 'lun':{ color: "#00FFFF", title: 'Storage LUNs'},
+			 'local_vlan':{ color: "#FF00AA", title: 'Local VLANs'},
+      			 'transit_vlan':{ color: "#FFAA00", label: 'Transit VLANs'},
+			 'global_vlan':{ color: "#FF0000", title: 'Global VLANs'},
+			 'mp_vlan':{ color: "#555555", title: 'Multi-Point VLANs'}};
+
+      // start on Nov 15, 2015, add three '0' to UNIX time
+      var exo_rrdflot_defaults={ graph_only: false, 
+			     use_checked_DSs: true, checked_DSs: ["vm", "bm", "lun","transit_vlan", "local_vlan", "global_vlan", "mp_vlan"],
+			     use_windows:true, window_min:1447549200000, graph_width:"700px",graph_height:"300px" };
+
+      var exo_flot_obj=new rrdFlotAsync("exograph",null,null,exo_graph_opts,exo_ds_graph_opts,exo_rrdflot_defaults);
+      exo_flot_obj.reload("rrd/exo-sm.rrd"); 
+
+      // SM graphs
+      var sm_graph_opts={legend: {noColumns: 5, position: "nw"}};
+
+      var sm_ds_graph_opts={'vm':{ color: "#0000FF", title: 'VMs'},
+                         'bm':{ color: "#00FF00", title: 'Bare-metal nodes'},
+                         'lun':{ color: "#00FFFF", title: 'Storage LUNs'},
+                         'local_vlan':{ color: "#FF00AA", title: 'Local VLANs'},
+                         'transit_vlan':{ color: "#FFAA00", label: 'Transit VLANs'}};
+
+      // start on Nov 15, 2015, add three '0' to UNIX time
+      var sm_rrdflot_defaults={ graph_only: false, 
+			     use_checked_DSs: true, checked_DSs: ["vm", "bm", "lun","transit_vlan", "local_vlan"],
+			     use_windows:true, window_min:1447549200000, graph_width:"700px",graph_height:"300px" };
+
+      var sm_flot_obj=new rrdFlotAsync("smgraph",null,null,sm_graph_opts,sm_ds_graph_opts,sm_rrdflot_defaults);
+      sm_flot_obj.reload("rrd/bbn-sm.rrd");
+
+      // AM graphs
+      var am_graph_opts={legend: {noColumns: 5, position: "nw"}};
+
+      var am_ds_graph_opts={'vm':{ color: "#0000FF", title: 'VMs'},
+                         'bm':{ color: "#00FF00", title: 'Bare-metal nodes'},
+                         'lun':{ color: "#00FFFF", title: 'Storage LUNs'},
+                         'local_vlan':{ color: "#FF00AA", title: 'Local VLANs'},
+                         'transit_vlan':{ color: "#FFAA00", label: 'Transit VLANs'}};
+
+      // start on Nov 15, 2015, add three '0' to UNIX time
+      var am_rrdflot_defaults={ graph_only: false, 
+			     use_checked_DSs: true, checked_DSs: ["vm", "bm", "lun","transit_vlan", "local_vlan"],
+			     use_windows:true, window_min:1447549200000, graph_width:"700px",graph_height:"300px" };
+
+      var am_flot_obj=new rrdFlotAsync("amgraph",null,null,am_graph_opts,am_ds_graph_opts,am_rrdflot_defaults);
+      am_flot_obj.reload("rrd/bbn-am.rrd");
+
+      // this function is invoked when the SM RRD file name changes
+      function fname_update(name, flot) {
+	var select = document.getElementsByName(name);
+	var s_value;
+	for(var i = 0; i < select.length; i++){
+	    if(select[i].checked){
+	        s_value = select[i].value;
+	    }
+	}
+        //var fname=document.getElementById(id).value;
+        flot.reload(s_value);
+      }
+
+    </script>
+  </body>
+</html>

@@ -8,7 +8,7 @@ PEQUODCONFIG="/home/ibaldin/.pequod/properties"
 
 # Special handling for ExoSM
 SM=exo
-findUrl geni.renci.org 14080
+findUrl geni.renci.org 14443
 URL=$RETURNURL
 
 SCRIPTNAME=$SCRIPTDIR/$SM-ActiveCheck.pq
@@ -35,15 +35,17 @@ VM=`echo $SMCOUNTS | cut -f5 -d' '`
 BM=`echo $SMCOUNTS | cut -f6 -d' '`
 LUN=`echo $SMCOUNTS | cut -f7 -d' '`
 
+echo $LOCAL_VLAN $TRANSIT_VLAN $GLOBAL_VLAN $MP_VLAN $VM $BM $LUN
 # insert in DB
-rrdtool updatev rrd/$SM-sm.rrd -t local_vlan:transit_vlan:global_vlan:mp_vlan:vm:bm:lun N:$LOCAL_VLAN:$TRANSIT_VLAN:$GLOBAL_VLAN:$MP_VLAN:$VM:$BM:$LUN
+#rrdtool updatev rrd/$SM-sm.rrd -t local_vlan:transit_vlan:global_vlan:mp_vlan:vm:bm:lun N:$LOCAL_VLAN:$TRANSIT_VLAN:$GLOBAL_VLAN:$MP_VLAN:$VM:$BM:$LUN
 
 # the rest of SMs
 for SM in $SMLIST; do 
   # find URL
-  findUrl $SM-hn.exogeni.net 14080
+  findUrlShort $SM 14443
   URL=$RETURNURL
   SCRIPTNAME=$SCRIPTDIR/$SM-ActiveCheck.pq
+  echo Found URL $URL
   # generate file
   cat > $SCRIPTNAME << end-of-file
 show reservations for all actor $SM-sm state active filter "e.vlan"
@@ -60,5 +62,6 @@ end-of-file
   VM=`echo $SMCOUNTS | cut -f3 -d' '`
   BM=`echo $SMCOUNTS | cut -f4 -d' '`
   LUN=`echo $SMCOUNTS | cut -f5 -d' '`
-  rrdtool updatev rrd/$SM-sm.rrd -t local_vlan:transit_vlan:vm:bm:lun N:$LOCAL_VLAN:$TRANSIT_VLAN:$VM:$BM:$LUN
+  echo $LOCAL_VLAN $TRANSIT_VLAN $VM $BM $LUN
+  #rrdtool updatev rrd/$SM-sm.rrd -t local_vlan:transit_vlan:vm:bm:lun N:$LOCAL_VLAN:$TRANSIT_VLAN:$VM:$BM:$LUN
 done

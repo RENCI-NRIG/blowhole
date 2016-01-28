@@ -8,7 +8,7 @@ echo $DATE > last_result_ams
 # AMs
 for AM in $AMLIST; do 
   # find URL
-  findUrl $AM-hn.exogeni.net 12080
+  findUrlShort $AM 12443
   URL=$RETURNURL
   SCRIPTNAME=$SCRIPTDIR/$AM-am-ActiveCheck.pq
   # generate file
@@ -21,7 +21,7 @@ show reservations for all actor $AM-vm-am state active filter "lun"
 end-of-file
   # query
   AMCOUNTS=`$PEQUOD -f $SCRIPTNAME -u $URL | grep Total | cut -f2 -d ' '`
-  echo $AM [$AMCOUNTS]
+  #echo $AM [$AMCOUNTS]
   LOCAL_VLAN=`echo $AMCOUNTS | cut -f1 -d' '`
   TRANSIT_VLAN=`echo $AMCOUNTS | cut -f2 -d' '`
   VM=`echo $AMCOUNTS | cut -f3 -d' '`

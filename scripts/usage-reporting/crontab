@@ -1,0 +1,2 @@
+# reporting RRD database for the entire exogeni. RRDs setup every 3 hours
+15 0-23/3 * * *	pushd $HOME/usage-reporting; ./query-rack-sms.bash; ./query-rack-ams.bash; pushd rrd/; pushd rrd/; cp * /var/www/graphs/rrd/

@@ -6,7 +6,7 @@ SCRIPTDIR="scripts"
 
 # Special handling for ExoSM
 SM=exo
-findUrl geni.renci.org 14080
+findUrl geni.renci.org 14443
 URL=$RETURNURL
 
 SCRIPTNAME=$SCRIPTDIR/$SM-ActiveCheck.pq
@@ -42,7 +42,7 @@ echo $SM $LOCAL_VLAN:$TRANSIT_VLAN:$GLOBAL_VLAN:$MP_VLAN:$VM:$BM:$LUN >> last_re
 # the rest of SMs
 for SM in $SMLIST; do 
   # find URL
-  findUrl $SM-hn.exogeni.net 14080
+  findUrlShort $SM 14443
   URL=$RETURNURL
   SCRIPTNAME=$SCRIPTDIR/$SM-ActiveCheck.pq
   # generate file
