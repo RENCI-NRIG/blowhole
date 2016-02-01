@@ -2,11 +2,13 @@
 <html>
   
     <script type="text/javascript" src="lib/javascriptrrd-1.1.1/src/lib/javascriptrrd.wlibs.js"></script>
+    <script type="text/javascript" src="lib/date.js"></script>
   <head>
     <title>ExoGENI Usage Statistics</title>
   </head>
 
   <body>
+
     <h1 id="title">ExoGENI Usage Statistics</h1>
 
     <h3>ExoSM</h3>
@@ -92,9 +94,13 @@
 			 'mp_vlan':{ color: "#555555", title: 'Multi-Point VLANs'}};
 
       // start on Nov 15, 2015, add three '0' to UNIX time
+      var mo3 = (3).months().ago();
       var exo_rrdflot_defaults={ graph_only: false, 
 			     use_checked_DSs: true, checked_DSs: ["vm", "bm", "lun","transit_vlan", "local_vlan", "global_vlan", "mp_vlan"],
-			     use_windows:true, window_min:1447549200000, graph_width:"700px",graph_height:"300px" };
+			     use_windows:true, 
+			     //window_min:1447549200000, 
+			     window_min:mo3.getTime(),
+			     graph_width:"700px",graph_height:"300px" };
 
       var exo_flot_obj=new rrdFlotAsync("exograph",null,null,exo_graph_opts,exo_ds_graph_opts,exo_rrdflot_defaults);
       exo_flot_obj.reload("rrd/exo-sm.rrd"); 
@@ -111,7 +117,10 @@
       // start on Nov 15, 2015, add three '0' to UNIX time
       var sm_rrdflot_defaults={ graph_only: false, 
 			     use_checked_DSs: true, checked_DSs: ["vm", "bm", "lun","transit_vlan", "local_vlan"],
-			     use_windows:true, window_min:1447549200000, graph_width:"700px",graph_height:"300px" };
+			     use_windows:true, 
+			     //window_min:1447549200000, 
+			     window_min:mo3.getTime(),
+			     graph_width:"700px",graph_height:"300px" };
 
       var sm_flot_obj=new rrdFlotAsync("smgraph",null,null,sm_graph_opts,sm_ds_graph_opts,sm_rrdflot_defaults);
       sm_flot_obj.reload("rrd/bbn-sm.rrd");
@@ -128,7 +137,10 @@
       // start on Nov 15, 2015, add three '0' to UNIX time
       var am_rrdflot_defaults={ graph_only: false, 
 			     use_checked_DSs: true, checked_DSs: ["vm", "bm", "lun","transit_vlan", "local_vlan"],
-			     use_windows:true, window_min:1447549200000, graph_width:"700px",graph_height:"300px" };
+			     use_windows:true, 
+			     //window_min:1447549200000, 
+			     window_min:mo3.getTime(),
+			     graph_width:"700px",graph_height:"300px" };
 
       var am_flot_obj=new rrdFlotAsync("amgraph",null,null,am_graph_opts,am_ds_graph_opts,am_rrdflot_defaults);
       am_flot_obj.reload("rrd/bbn-am.rrd");
