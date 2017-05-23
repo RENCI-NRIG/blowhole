@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.renci</groupId>
 	<artifactId>pubsub-daemon</artifactId>
-	<version>0.2-SNAPSHOT</version>
+	<version>0.2.1-SNAPSHOT</version>
 	<name>XMPP PubSub Daemon</name>
 	<description>Listens to Orca Manifests and pushes them out</description>
 	<repositories>
