@@ -1,4 +1,4 @@
-OVERVIEW
+# OVERVIEW
 
 Blowhole subscribes to a number of slice lists on an indicated
 XMPP server (using provided credentials) and listens for the events on the slice manifests
@@ -20,7 +20,7 @@ Saves slice information into the central ExoGENI database
 
 Parses the manifest (as RSpec and raw NDL) and populates the monitoring database
 
-BUILDING
+## BUILDING
 
 The easy way to build (needs maven):
 
@@ -50,7 +50,7 @@ java -cp ./target/pubsub-daemon-0.1-SNAPSHOT-jar-with-dependencies.jar org.renci
 
 To stop use Ctrl-C (note that it may take a few seconds to cancel active subscriptions).
 
-TOOLS
+## TOOLS
 
 ---- Listing nodes in pubsub space 
 
@@ -70,7 +70,7 @@ $ sh target/appassembler/bin/deleteNodes
 Blowhole can save all slices into a MySQL database. The schema is xoschema.sql. You need to provide three properties
 DB.url, DB.user and DB.password for blowhole to start saving slices into the db.
 
-FOR PACKAGERS
+## FOR PACKAGERS
 
 $ mvn clean package
 
@@ -81,3 +81,22 @@ will create a deployable JSW-based daemon under
 It should be suitable for packaging in RPM. Right now only linux (32- and 64-bit linux distros).
 
 You can also package the individual applications produced with 'mvn clean package appassembler:assemble'
+
+## Building RPM
+To build an RPM
+```
+mkdir ~/blowhole
+cd ~/blowhole
+git clone https://github.com/RENCI-NRIG/blowhole.git
+export JAVA_HOME=/usr/java/latest
+export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:$LOCAL_DEV/ant/bin:$LOCAL_DEV/maven/bin:$PATH
+export ANT_OPTS="-Xms40m -Xmx1024m"
+export MAVEN_OPTS="-Xms40m -Xmx1024m"
+export SHORTCOMMIT=`git rev-parse --short=8 HEAD`
+cd blowhole # You’re now entering the source you just checked out
+./create_spec_from_tmpl.sh
+cd ../ # This will take you back to the top level blowhole directory
+mv blowhole blowhole-0.2-${SHORTCOMMIT}
+tar -cvzf blowhole-0.2-${SHORTCOMMIT}.tar.gz blowhole-0.2-${SHORTCOMMIT}
+rpmbuild -ta blowhole-0.2-${SHORTCOMMIT}.tar.gz
+```
