@@ -1,3 +1,5 @@
+# This repo is maintained only for historical reasons. The code is no longer being maintained.
+
 # OVERVIEW
 
 Blowhole subscribes to a number of slice lists on an indicated
